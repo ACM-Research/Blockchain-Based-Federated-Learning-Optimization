@@ -1,6 +1,7 @@
 import requests
 import sys
 import socket
+import random
 
 server = "localhost:3000"
 
@@ -8,16 +9,30 @@ print(sys.argv)
 if len(sys.argv) > 1:
     server = sys.argv[1]
 
-# post initial connection to server
-r = requests.post("http://" + server + "/connect")
+serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind(("localhost", random.randint(3001, 4000)))
+
+serv.connect(("localhost", 3000))
+# send port to server
+serv.send(str(s.getsockname()[1]).encode())
+
+while True:
+    temp = serv.recv(1024).decode()
+
+
 
 # receive response from server (id, port, parentIp, parentPort)
-print(r.text)
-id, port, parentIp, parentPort = r.text.split(" ")
+# print(r.text)
+# id, port, parentIp, parentPort = r.text.split(" ")
 
 # create socket
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(("localhost", int(port)))
+
+
+
+
+
+
 s.listen(5)
 
 # connect to parent
