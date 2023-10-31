@@ -1,7 +1,9 @@
+from time import sleep
 import requests
 import sys
 import socket
 import random
+import threading
 
 server = "localhost:3000"
 
@@ -26,6 +28,18 @@ if temp != "None":
     parent = {"ip": temp.split(" ")[0], "port": temp.split(" ")[1]}
     print("parent", parent)
 
+# CREATE NEW THREAD TO WORK
+
+
+def work(x = 1000):
+    if (x == 0):
+        return
+    sleep(1)
+    print("hi")
+    work(x - 1)
+
+threading.Thread(target=work).start()
+
 while True:
     temp = serv.recv(1024).decode()
     if temp != "None":
@@ -38,8 +52,7 @@ while True:
     temp = serv.recv(1024).decode()
 
 
-def work():
-    return "hi"
+
 
 
 
