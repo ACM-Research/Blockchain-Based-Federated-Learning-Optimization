@@ -28,8 +28,14 @@ while True:
     index = len(tree)
     tree.append(client)
     # get parent
-    parent = index / 2
+    parent = int(index / 2)
+    print("Parent is", parent)
     if parent > 0:
         parent = tree[int(parent)]
         # send parent info to client
         conn.send((str(parent["ip"]) + " " + str(parent["port"])).encode())
+        # send client info to parent
+        parent["conn"].send((str(client["ip"]) + " " + str(client["port"])).encode())
+    else:
+        # send client info to parent
+        conn.send("None".encode())
