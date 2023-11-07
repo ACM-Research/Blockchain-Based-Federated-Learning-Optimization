@@ -2,7 +2,8 @@ from flask import Flask
 
 app = Flask(__name__)
 
-@app.route("/")
-def echo():
-  id = request.args.get("id")
-  return {"id": id, "parent": id // 2, "children": [id * 2, id * 2 + 1]}
+@app.route("/join/<id>")
+def join(id):
+  id = int(id)
+  return {"id": id, "parent": id, "children": [id * 2, id * 2 + 1]}
+
