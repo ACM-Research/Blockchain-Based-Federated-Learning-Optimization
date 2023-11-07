@@ -4,14 +4,24 @@ import sys
 import socket
 import random
 import threading
-# TensorFlow and tf.keras
-import tensorflow as tf
 
 # Helper libraries
 import numpy as np
 import matplotlib.pyplot as plt
 
-print(tf.__version__)
+#%matplotlib inline
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+import torchvision
+import torchvision.transforms as transforms
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 
 server = "localhost:3000"
 address = "XXXXXXXXX"
@@ -46,41 +56,21 @@ else:
 
 
 def work(x = 0):
-    # DATA
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data() # 28x28 images of hand-written digits 0-9
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    # PREPROCESS DATA
-    x_train = x_train / 255.0
-    x_test = x_test / 255.0
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                            download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+                                            shuffle=True, num_workers=2)
 
-    # BUILD MODEL
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=(28, 28)), # input layer
-        tf.keras.layers.Dense(128, activation='relu'), # hidden layer
-        tf.keras.layers.Dense(10, activation='softmax') # output layer
-    ])
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                        download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+                                            shuffle=False, num_workers=2)
 
-    # COMPILE MODEL
-    model.compile(optimizer='adam',
-                loss='sparse_categorical_crossentropy',
-                metrics=['accuracy'])
-
-    # TRAIN MODEL
-    model.fit(x_train, y_train, epochs=5)
-
-    # EVALUATE MODEL
-    test_loss, test_acc = model.evaluate(x_test, y_test)
-    print('Test accuracy:', test_acc)
-
-    # MAKE PREDICTIONS
-    predictions = model.predict(x_test)
-    print(predictions[0])
-    print(np.argmax(predictions[0]))
-    print(y_test[0])
-
-    # SAVE MODEL
-    model.save('model.h5')
-    work(x - 1)
+    classes = ('plane', 'car', 'bird', 'cat',
+            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+    print("hi")
 
 
 # https://www.tensorflow.org/federated/tutorials/building_your_own_federated_learning_algorithm
