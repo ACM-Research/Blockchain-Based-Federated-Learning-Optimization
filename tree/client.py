@@ -22,6 +22,9 @@ import torchvision.transforms as transforms
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
+import model
 
 server = "localhost:3000"
 address = "XXXXXXXXX"
@@ -53,23 +56,35 @@ else:
 # CREATE NEW THREAD TO WORK
 
 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+
+from model import Helpers, Titanic_Model_1
+from torch.utils.data import TensorDataset, random_split, DataLoader
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+
 
 
 def work(x = 0):
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        
+    train = pd.read_csv('./train.csv')
+    test = pd.read_csv('./test.csv')
+    y = train["Survived"]
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-                                            shuffle=True, num_workers=2)
+    features = ["Pclass", "Sex", "SibSp", "Parch"]
+    X = pd.get_dummies(train[features])
+    X_test = pd.get_dummies(test[features])
 
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                        download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-                                            shuffle=False, num_workers=2)
+    model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=1)
+    model.fit(X, y)
+    predictions = model.predict(X_test)
+    train_predictions = model.predict(X)
+    
+    print(classification_report(y, train_predictions))
 
-    classes = ('plane', 'car', 'bird', 'cat',
-            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
     print("hi")
 
 
@@ -109,27 +124,27 @@ while True:
 
 
 
-# connect to parent
-if parentIp != "None":
-    s.connect((parentIp, int(parentPort)))
+# # connect to parent
+# if parentIp != "None":
+#     s.connect((parentIp, int(parentPort)))
 
-    # send id to parent
-    s.send(id.encode())
+#     # send id to parent
+#     s.send(id.encode())
 
-    # receive response from parent
-    print(s.recv(1024).decode())
+#     # receive response from parent
+#     print(s.recv(1024).decode())
 
-# accept connections from children
-while True:
-    conn, addr = s.accept()
-    print("connected to", addr)
+# # accept connections from children
+# while True:
+#     conn, addr = s.accept()
+#     print("connected to", addr)
 
-    # receive id from child
-    childId = conn.recv(1024).decode()
-    print("received id", childId)
+#     # receive id from child
+#     childId = conn.recv(1024).decode()
+#     print("received id", childId)
 
-    # send id to child
-    conn.send(id.encode())
+#     # send id to child
+#     conn.send(id.encode())
 
-    # receive response from child
-    print(conn.recv(1024).decode())
+#     # receive response from child
+#     print(conn.recv(1024).decode())
