@@ -223,6 +223,27 @@ def fedAvg3(m1, m2, m3):
     child1model = None
     return m1
 
+def fedAvg2(m1, m2):
+    
+    while working:
+        sleep(1)
+    
+    print("WORKING 2")
+    print(m1)
+    print(m2)
+    # average the parameters of the two models
+    for param1, param2 in zip(m1.parameters(), m2.parameters()):
+        param1.data = (param1.data + param2.data) / 2
+        
+    torch.save(m1, './avg.pth')
+    
+    if not isRoot:
+        buffer = io.BytesIO()
+        torch.save(m1, buffer)
+        # SEND UP THE TREE ONCE AVG IS DONE
+        send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
+    return m1
+
 children = []
 
 
@@ -261,10 +282,13 @@ def handle_client(conn, conn_name):
                 buffer = io.BytesIO(payload)
                 buffer.seek(0)
                 clientM = torch.load(buffer)
-                if child1model != None:
-                    fedAvg3(model, clientM, child1model)
+                if len(children) == 1:
+                    fedAvg2(model, clientM)
                 else:
-                    child1model = clientM
+                    if child1model != None:
+                        fedAvg3(model, clientM, child1model)
+                    else:
+                        child1model = clientM
             else:
                 # if data is 'bye' then break the loop and client connection will be closed
                 if payload == "bye":
