@@ -77,7 +77,11 @@ print(sys.argv)
 if len(sys.argv) > 1:
     server = sys.argv[1]
 
+
+# TEST SERVER CONNECTION
 serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# IMPORTANT CONNECTIONS
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("localhost", random.randint(3001, 4000)))
@@ -91,6 +95,7 @@ parent = {}
 children = []
 maxChildren = 2
 
+# GET PARENT FROM SERVER
 temp = serv.recv(1024).decode()
 if temp != "None":
     parent = {"ip": temp.split(" ")[0], "port": temp.split(" ")[1]}
@@ -100,7 +105,7 @@ else:
     print("ROOT")
     isRoot = True
 
-
+# LINEAR REGRESSION MODEL
 class linearRegression(torch.nn.Module):
     def __init__(self, inputSize, outputSize):
         super(linearRegression, self).__init__()
@@ -112,6 +117,7 @@ class linearRegression(torch.nn.Module):
 
 working = True
 model = None
+# TRAIN THE MODEL
 def work():
     global model
     global working
@@ -185,20 +191,8 @@ def work():
     print("DONE TRAINING")
     working = False
 
-
-# https://www.tensorflow.org/federated/tutorials/building_your_own_federated_learning_algorithm
-# def fedAvg2(m1, m2):
-#     print("WORKING 2")
-#     print(m1)
-#     print(m2)
-#     # average the parameters of the two models
-#     for param1, param2 in zip(m1.parameters(), m2.parameters()):
-#         param1.data = (param1.data + param2.data) / 2
-    
-#     torch.save(m1, './avg.pth')
-#     return m1
-
 child1model = None
+# FEDAVG WITH 2 CHILDREN
 def fedAvg3(m1, m2, m3):
     global child1model
     
@@ -223,6 +217,7 @@ def fedAvg3(m1, m2, m3):
     child1model = None
     return m1
 
+# FEDAVG WITH 1 CHILD
 def fedAvg2(m1, m2):
     
     while working:
@@ -246,18 +241,18 @@ def fedAvg2(m1, m2):
 
 children = []
 
-
+# CREATE NEW THREAD TO TRAIN THE MODEL
 def start_epoch():
-    # CREATE NEW THREAD TO WORK
     threading.Thread(target=work).start()
     
+# SEND MESSAGE TO ALL CHILDREN
 def send_broadcast_down(payload):
     # SEND MSG TO CHILDREN
     for child in children:
         send_data(child["conn"], payload, data_identifiers["info"])
     
 
-
+# HANDLE MESSAGES FROM CHILDREN (AWAIT MODEL DATA)
 def handle_client(conn, conn_name):
     """
     @brief: handle the connection from client at seperate thread
@@ -308,13 +303,11 @@ def handle_client(conn, conn_name):
                 start_epoch()
     conn.close()
 
+# LISTEN FOR CONNECTIONS FROM CHILDREN AND CREATE A THREAD FOR EACH
 def connectToChildren():
     while True:
         try:
-            # accept client connection
-            # if first message from client match the defined message
-            # then handle it at seperate thread
-            # otherwise close the connection
+            # Listen for connections
             conn, (address, port) = s.accept()
             conn_name = "{}|{}".format(address, port)
             children.append({"ip": address, "port": port, "conn": conn})
@@ -329,13 +322,10 @@ def connectToChildren():
     s.close()
     print("[INFO]: Server Closed")
 
-
-
-
+# START A THREAD FOR LISTENING TO CHILDREN (FOR FEDAVG)
 threading.Thread(target=connectToChildren).start()
 
-
-
+# AWAIT FOR START AS ROOT, OTHERWISE ACT AS NODE AND PASS MESSAGES DOWN
 if isRoot:
     input("Press Enter to start the tree...\n\n")
     start_epoch()
@@ -349,13 +339,3 @@ else:
             start_epoch()
             send_broadcast_down("start")
 
-
-# LISTEN TO SERVER FOR CHILDREN
-
-# while True:
-#     temp = serv.recv(1024).decode()
-#     if temp != "None":
-#         children.append({"ip": temp.split(" ")[0], "port": temp.split(" ")[1]})
-#         print("children", children)
-#     if len(children) == maxChildren:
-#         break
