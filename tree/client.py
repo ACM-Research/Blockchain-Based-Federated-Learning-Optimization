@@ -57,7 +57,6 @@ else:
 
 
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 
 from model import Helpers, Titanic_Model_1
@@ -66,31 +65,92 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 
+import os
+
+import torch
+from torch.autograd import Variable
+class linearRegression(torch.nn.Module):
+    def __init__(self, inputSize, outputSize):
+        super(linearRegression, self).__init__()
+        self.linear = torch.nn.Linear(inputSize, outputSize)
+
+    def forward(self, x):
+        out = self.linear(x)
+        return out
 
 
 def work(x = 0):
+    
+    inputDim = 3        # takes variable 'x' 
+    outputDim = 1       # takes variable 'y'
+    learningRate = 0.01 
+    epochs = 100
         
     train = pd.read_csv('./train.csv')
-    test = pd.read_csv('./test.csv')
-    y = train["Survived"]
-
-    features = ["Pclass", "Sex", "SibSp", "Parch"]
-    X = pd.get_dummies(train[features])
-    X_test = pd.get_dummies(test[features])
-
-    model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=1)
-    model.fit(X, y)
-    predictions = model.predict(X_test)
-    train_predictions = model.predict(X)
     
-    print(classification_report(y, train_predictions))
+    train.dropna(subset=['Age'], inplace=True)
+    
+    test = pd.read_csv('./test.csv')
+    y_train = train["Age"]
+
+    features = ["Pclass", "SibSp", "Parch"]
+    x_train = pd.get_dummies(train[features])
+    X_test = pd.get_dummies(test[features])
+    
+    # train to numpy array
+    x_train = x_train.to_numpy().astype(np.float32)
+    y_train = y_train.to_numpy().astype(np.float32)
+
+    # get model if exists
+    if os.path.exists('./model.pth'):
+        model = torch.load('./model.pth')
+    else:
+        model = linearRegression(inputDim, outputDim)
+    
+    if torch.cuda.is_available():
+        model.cuda()
+    
+    criterion = torch.nn.MSELoss() 
+    optimizer = torch.optim.SGD(model.parameters(), lr=learningRate)
+    for epoch in range(epochs):
+        # Converting inputs and labels to Variable
+        if torch.cuda.is_available():
+            inputs = Variable(torch.from_numpy(x_train).cuda())
+            labels = Variable(torch.from_numpy(y_train).cuda())
+        else:
+            inputs = Variable(torch.from_numpy(x_train))
+            labels = Variable(torch.from_numpy(y_train))
+
+        # Clear gradient buffers because we don't want any gradient from previous epoch to carry forward, dont want to cummulate gradients
+        optimizer.zero_grad()
+
+        # get output from the model, given the inputs
+        outputs = model(inputs)
+
+        # get loss for the predicted output
+        loss = criterion(outputs, labels)
+        print(loss)
+        # get gradients w.r.t to parameters
+        loss.backward()
+
+        # update parameters
+        optimizer.step()
+
+        print('epoch {}, loss {}'.format(epoch, loss.item()))
+    
+    # save model
+    torch.save(model, './model.pth')
 
     print("hi")
 
 
 # https://www.tensorflow.org/federated/tutorials/building_your_own_federated_learning_algorithm
-def fedAvg(w1, w2):
-    return (w1 + w2) / 2
+def fedAvg(m1, m2):
+    # average the parameters of the two models
+    for param1, param2 in zip(m1.parameters(), m2.parameters()):
+        param1.data = (param1.data + param2.data) / 2
+    
+    return m1
 
 
 threading.Thread(target=work).start()
