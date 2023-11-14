@@ -7,33 +7,16 @@ import threading
 
 # Helper libraries
 import numpy as np
-import matplotlib.pyplot as plt
 
 #%matplotlib inline
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
 import torchvision
 import torchvision.transforms as transforms
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-# import model
-
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
-
-from model import Helpers, Titanic_Model_1
-from torch.utils.data import TensorDataset, random_split, DataLoader
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
 
 import os
 import io
@@ -45,6 +28,8 @@ import pickle
 import struct
 
 data_identifiers = {"info": 0, "data": 1, "image": 2}
+isRoot = False
+waiting = True
 
 def send_data(conn, payload, data_id=0):
     """
@@ -113,9 +98,7 @@ if temp != "None":
     print("parent", parent)
 else:
     print("ROOT")
-
-# CREATE NEW THREAD TO WORK
-
+    isRoot = True
 
 
 class linearRegression(torch.nn.Module):
@@ -127,9 +110,11 @@ class linearRegression(torch.nn.Module):
         out = self.linear(x)
         return out
 
+working = True
 model = None
 def work():
     global model
+    global working
     
     inputDim = 3        # takes variable 'x' 
     outputDim = 1       # takes variable 'y'
@@ -193,35 +178,33 @@ def work():
     
     buffer = io.BytesIO()
     torch.save(model, buffer)
-    # send model to parent
-    # if parent != {}:
-    #     buffer = buffer.getvalue()
-    #     print("sending model to", parent)
-    #     for i in range(0, len(buffer), 1016):
-    #         # 8 bit integer and 1016 bytes
-    #         index = i
-    #         chunk = buffer[i:i+1016]
-    #         data = str(index).zfill(8).encode() + chunk
-    #         s.sendto(data, (parent["ip"], int(parent["port"])))
-    if parent != {}:
+    
+    if parent != {} and len(children) != maxChildren:
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
 
     print("DONE TRAINING")
+    working = False
 
 
 # https://www.tensorflow.org/federated/tutorials/building_your_own_federated_learning_algorithm
-def fedAvg2(m1, m2):
-    print("WORKING 2")
-    print(m1)
-    print(m2)
-    # average the parameters of the two models
-    for param1, param2 in zip(m1.parameters(), m2.parameters()):
-        param1.data = (param1.data + param2.data) / 2
+# def fedAvg2(m1, m2):
+#     print("WORKING 2")
+#     print(m1)
+#     print(m2)
+#     # average the parameters of the two models
+#     for param1, param2 in zip(m1.parameters(), m2.parameters()):
+#         param1.data = (param1.data + param2.data) / 2
     
-    torch.save(m1, './avg.pth')
-    return m1
+#     torch.save(m1, './avg.pth')
+#     return m1
 
+child1model = None
 def fedAvg3(m1, m2, m3):
+    global child1model
+    
+    while working:
+        sleep(1)
+    
     print("WORKING 3")
     print(m1)
     print(m2)
@@ -231,9 +214,28 @@ def fedAvg3(m1, m2, m3):
         param1.data = (param1.data + param2.data + param3.data) / 3
     
     torch.save(m1, './avg.pth')
+    
+    if not isRoot:
+        buffer = io.BytesIO()
+        torch.save(m1, buffer)
+        # SEND UP THE TREE ONCE AVG IS DONE
+        send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
+    child1model = None
     return m1
 
-threading.Thread(target=work).start()
+children = []
+
+
+def start_epoch():
+    # CREATE NEW THREAD TO WORK
+    threading.Thread(target=work).start()
+    
+def send_broadcast_down(payload):
+    # SEND MSG TO CHILDREN
+    for child in children:
+        send_data(child["conn"], payload, data_identifiers["info"])
+    
+
 
 def handle_client(conn, conn_name):
     """
@@ -242,8 +244,12 @@ def handle_client(conn, conn_name):
         conn: socket object of connection
         con_name: name of the connection
     """
+    global child1model
     while True:
         try:
+            if isRoot and waiting:
+                continue
+            
             data_id, payload = receive_data(conn)
             # if data identifier is image then save the image
             if data_id == data_identifiers["image"]:
@@ -255,12 +261,10 @@ def handle_client(conn, conn_name):
                 buffer = io.BytesIO(payload)
                 buffer.seek(0)
                 clientM = torch.load(buffer)
-                
-                torch.save(clientM, './client.pth')
-                if model != None:
-                    print("FEDERATING")
-                    
-                    fedAvg2(model, clientM)
+                if child1model != None:
+                    fedAvg3(model, clientM, child1model)
+                else:
+                    child1model = clientM
             else:
                 # if data is 'bye' then break the loop and client connection will be closed
                 if payload == "bye":
@@ -269,10 +273,15 @@ def handle_client(conn, conn_name):
                     )
                     print("[INFO]: Closing connection with {}".format(conn_name))
                     break
+                elif payload == "start":
+                    start_epoch()
+                    send_broadcast_down("start")
                 else:
                     print(payload)
-        except:
-            print("[WARNING]: There was some issue with connection")
+        except KeyboardInterrupt:
+            if (isRoot):
+                send_broadcast_down("start")
+                start_epoch()
     conn.close()
 
 def connectToChildren():
@@ -284,6 +293,7 @@ def connectToChildren():
             # otherwise close the connection
             conn, (address, port) = s.accept()
             conn_name = "{}|{}".format(address, port)
+            children.append({"ip": address, "port": port, "conn": conn})
             print("[INFO]: Accepted the connection from {}".format(conn_name))
             threading.Thread(target=handle_client, args=(conn, conn_name)).start()
             
@@ -295,77 +305,33 @@ def connectToChildren():
     s.close()
     print("[INFO]: Server Closed")
 
+
+
+
 threading.Thread(target=connectToChildren).start()
+
+
+
+if isRoot:
+    input("Press Enter to start the tree...\n\n")
+    start_epoch()
+    send_broadcast_down("start")
+    waiting = False
+else:
+    while True:
+        # receive from parent
+        data_id, payload = receive_data(parentConn)
+        if payload == "start":
+            start_epoch()
+            send_broadcast_down("start")
+
 
 # LISTEN TO SERVER FOR CHILDREN
 
-while True:
-    temp = serv.recv(1024).decode()
-    if temp != "None":
-        children.append({"ip": temp.split(" ")[0], "port": temp.split(" ")[1]})
-        print("children", children)
-    if len(children) == maxChildren:
-        break
-    
-
-
-
-child1model = None
-buffer = io.BytesIO()
-
-while True:
-    temp = serv.recv(1024).decode()
-    
-    # get model from parent
-    data, addr = s.recvfrom(1024)
-    # get first 8 bytes
-    index = int(data[:8].decode())
-    # get rest of data
-    data = data[8:]
-    # write data to buffer
-    buffer.write(data)
-    
-    
-
-
-
-
-
-
-# receive response from server (id, port, parentIp, parentPort)
-# print(r.text)
-# id, port, parentIp, parentPort = r.text.split(" ")
-
-# create socket
-
-
-
-
-
-
-
-
-# # connect to parent
-# if parentIp != "None":
-#     s.connect((parentIp, int(parentPort)))
-
-#     # send id to parent
-#     s.send(id.encode())
-
-#     # receive response from parent
-#     print(s.recv(1024).decode())
-
-# # accept connections from children
 # while True:
-#     conn, addr = s.accept()
-#     print("connected to", addr)
-
-#     # receive id from child
-#     childId = conn.recv(1024).decode()
-#     print("received id", childId)
-
-#     # send id to child
-#     conn.send(id.encode())
-
-#     # receive response from child
-#     print(conn.recv(1024).decode())
+#     temp = serv.recv(1024).decode()
+#     if temp != "None":
+#         children.append({"ip": temp.split(" ")[0], "port": temp.split(" ")[1]})
+#         print("children", children)
+#     if len(children) == maxChildren:
+#         break
