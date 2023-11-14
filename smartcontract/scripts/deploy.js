@@ -1,13 +1,14 @@
 const hre = require("hardhat");
 
 async function main() {
-  const MainContract = await hre.ethers.getContractFactory("MainContract");
-  const initialCount = 5;
-  const mainContract = await MainContract.deploy(initialCount);
-  console.log(`MainContract Deployed to: ${mainContract.target}`);
+    const MainContract = await hre.ethers.getContractFactory("MainContract");
+    const mainContract = await MainContract.deploy();
+
+    await mainContract.deployed();
+    console.log(`MainContract deployed to: ${mainContract.address}`);
 }
 
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    console.error(error);
+    process.exitCode = 1;
 });

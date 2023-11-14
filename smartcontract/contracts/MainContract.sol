@@ -1,26 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-import "hardhat/console.sol";
 
 contract MainContract {
     enum Role { Worker, SubAggregator, RootAggregator }
-    
+
     struct User {
         address userAddress;
         Role role;
     }
-    
-    struct Task {
-        uint256 id;
-        uint256 requiredUsers;
-        uint256 currentUserCount;
-        bytes32 modelUpdateHash;
-        User[] users;
-        bool isInitialized;
-    }
-
-    uint256 public nextTaskId;
-    mapping(uint256 => Task) public tasks;
 
     struct TreeNode {
         address userAddress;
@@ -29,21 +16,29 @@ contract MainContract {
         uint256 right;
     }
 
-    mapping(uint256 => TreeNode) public tree;
+    struct Task {
+        uint256 id;
+        uint256 requiredUsers;
+        uint256 currentUserCount;
+        User[] users;
+        bool isInitialized;
+        uint256 modelUpdateCount;
+    }
 
+    uint256 public nextTaskId;
+    mapping(uint256 => Task) public tasks;
+    mapping(uint256 => TreeNode) public tree;
 
     event TaskInitialized(uint256 taskId);
     event UserAdded(uint256 taskId, address user);
-    event ModelUpdated(uint256 taskId, bytes32 modelUpdateHash);
+    event ModelUpdateStarted(uint256 taskId);
 
     function initTask(uint256 requiredUsers) public {
         require(requiredUsers > 0, "Number of required users must be greater than 0");
-
         Task storage newTask = tasks[nextTaskId];
         newTask.id = nextTaskId;
         newTask.requiredUsers = requiredUsers;
         newTask.isInitialized = true;
-
         emit TaskInitialized(nextTaskId);
         nextTaskId++;
     }
@@ -52,60 +47,53 @@ contract MainContract {
         Task storage task = tasks[taskId];
         require(task.isInitialized, "Task is not initialized");
         require(task.currentUserCount < task.requiredUsers, "All users have already been added");
-
-        User memory newUser = User({
-            userAddress: userAddress,
-            role: Role.Worker
-        });
-
+        User memory newUser = User({userAddress: userAddress, role: Role.Worker});
         task.users.push(newUser);
         task.currentUserCount++;
-
         emit UserAdded(taskId, userAddress);
     }
 
-    function updateModel(uint256 taskId, bytes32 modelUpdateHash) public {
+    function finalizeTaskSetup(uint256 taskId) public {
+        Task storage task = tasks[taskId];
+        require(task.currentUserCount == task.requiredUsers, "Task does not have required number of users");
+        
+        // Categorize users
+        for (uint256 i = 0; i < task.users.length; i++) {
+            if (i == 0) {
+                task.users[i].role = Role.RootAggregator;
+            } else if (i <= 1 + 2 * (task.users.length - 2) / 3) { // Sub Aggregators
+                task.users[i].role = Role.SubAggregator;
+            } else {
+                task.users[i].role = Role.Worker;
+            }
+        }
+        createTree(taskId);
+    }
+
+    function createTree(uint256 taskId) internal {
+        Task storage task = tasks[taskId];
+        uint256 totalMembers = task.users.length;
+
+        for (uint256 i = 0; i < totalMembers; i++) {
+            uint256 leftChild = 2 * i + 1 < totalMembers ? 2 * i + 1 : 0;
+            uint256 rightChild = 2 * i + 2 < totalMembers ? 2 * i + 2 : 0;
+
+            tree[i] = TreeNode({
+                userAddress: task.users[i].userAddress,
+                role: task.users[i].role,
+                left: leftChild,
+                right: rightChild
+            });
+        }
+    }
+
+    function updateModel(uint256 taskId) public {
         Task storage task = tasks[taskId];
         require(task.isInitialized, "Task is not initialized");
-        require(msg.sender == task.users[0].userAddress, "Only the Root Aggregator can update the model");
+        require(msg.sender == task.users[0].userAddress, "Only the Root Aggregator can initiate model update");
 
-        task.modelUpdateHash = modelUpdateHash;
-        emit ModelUpdated(taskId, modelUpdateHash);
+        task.modelUpdateCount++;
+        createTree(taskId);
+        emit ModelUpdateStarted(taskId);
     }
-
-        
-    function createTree(uint256 totalMembers, address root, address[] memory subAggregators, address[] memory workers) public {
-        require(totalMembers >= 3, "Total members must be at least 3");
-        require(totalMembers == 1 + subAggregators.length + workers.length, "Total members must match the sum of root, subAggregators, and workers");
-        require(subAggregators.length > 0, "At least one sub-aggregator is required");
-
-        // Root Aggregator
-        tree[0] = TreeNode({
-            userAddress: root,
-            role: Role.RootAggregator,
-            left: 1,
-            right: 2
-        });
-
-        // SubAggregators
-        for (uint256 i = 0; i < subAggregators.length; i++) {
-            tree[i + 1] = TreeNode({
-                userAddress: subAggregators[i],
-                role: Role.SubAggregator,
-                left: 2 * i + 3,
-                right: 2 * i + 4
-            });
-        }
-
-        // Workers
-        for (uint256 i = 0; i < workers.length; i++) {
-            tree[subAggregators.length + i + 1] = TreeNode({
-                userAddress: workers[i],
-                role: Role.Worker,
-                left: 0,
-                right: 0
-            });
-        }
-    }
-
 }
