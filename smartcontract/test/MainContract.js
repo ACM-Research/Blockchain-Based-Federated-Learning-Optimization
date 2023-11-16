@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
 describe("MainContract", function () {
     let MainContract, mainContract, owner, addr1, addr2, addr3;
@@ -7,61 +8,54 @@ describe("MainContract", function () {
         [owner, addr1, addr2, addr3] = await ethers.getSigners();
         MainContract = await ethers.getContractFactory("MainContract");
         mainContract = await MainContract.deploy();
-        await mainContract.deployed();
     });
 
     describe("Task Management", function () {
-        it("Should initialize and finalize task setup correctly", async function () {
-            await mainContract.initTask(3);
+        beforeEach(async function () {
+            const fundingAmount = ethers.parseEther("1");
+            await mainContract.initTask(3, 2, fundingAmount);
             await mainContract.addUser(0, addr1.address);
             await mainContract.addUser(0, addr2.address);
             await mainContract.addUser(0, addr3.address);
-            await mainContract.finalizeTaskSetup(0);
-
+        });
+    
+        it("Should initialize and add users to a task correctly", async function () {
             const task = await mainContract.tasks(0);
             expect(task.requiredUsers).to.equal(3);
-            expect(task.currentUserCount).to.equal(3);
+            expect(task.users.length).to.equal(3); // Ensure this line is after users are added
             expect(task.isInitialized).to.be.true;
+            expect(task.isFull).to.be.true;
         });
-
+    
         it("Should create a tree structure correctly", async function () {
-            await mainContract.initTask(3);
-            await mainContract.addUser(0, addr1.address);
-            await mainContract.addUser(0, addr2.address);
-            await mainContract.addUser(0, addr3.address);
-            await mainContract.finalizeTaskSetup(0);
-
-            const root = await mainContract.tree(0);
-            const subAggregator = await mainContract.tree(1);
-            const worker = await mainContract.tree(2);
-
-            expect(root.userAddress).to.equal(addr1.address);
-            expect(subAggregator.userAddress).to.equal(addr2.address);
-            expect(worker.userAddress).to.equal(addr3.address);
+            if (typeof mainContract.startIteration === 'function') { // Check if function exists
+                await mainContract.startIteration(0);
+                const task = await mainContract.tasks(0);
+                expect(task.tree.length).to.equal(3);
+            } else {
+                throw new Error("startIteration function is not available in MainContract");
+            }
         });
     });
 
-    describe("Model Update", function () {
-        it("Should allow the root aggregator to update the model", async function () {
-            await mainContract.initTask(3);
+    describe("Iteration Completion", function () {
+        beforeEach(async function () {
+            await mainContract.initTask(3, 2, ethers.parseEther("1"));
             await mainContract.addUser(0, addr1.address);
             await mainContract.addUser(0, addr2.address);
             await mainContract.addUser(0, addr3.address);
-            await mainContract.finalizeTaskSetup(0);
-
-            await mainContract.connect(addr1).updateModel(0);
-            const task = await mainContract.tasks(0);
-            expect(task.modelUpdateCount).to.equal(1);
+            await mainContract.startIteration(0);
         });
 
-        it("Should not allow non-root aggregators to update the model", async function () {
-            await mainContract.initTask(3);
-            await mainContract.addUser(0, addr1.address);
-            await mainContract.addUser(0, addr2.address);
-            await mainContract.addUser(0, addr3.address);
-            await mainContract.finalizeTaskSetup(0);
+        it("Should allow the root aggregator to complete an iteration", async function () {
+            await mainContract.connect(addr1).completeIteration(0, [addr1.address, addr2.address, addr3.address], [100, 100, 100]);
+            const task = await mainContract.tasks(0);
+            expect(task.currentIteration).to.equal(1);
+        });
 
-            await expect(mainContract.connect(addr2).updateModel(0)).to.be.revertedWith("Only the Root Aggregator can initiate model update");
+        it("Should not allow non-root aggregators to complete an iteration", async function () {
+            await expect(mainContract.connect(addr2).completeIteration(0, [addr1.address, addr2.address, addr3.address], [100, 100, 100]))
+                .to.be.revertedWith("Only Root Aggregator can complete the iteration");
         });
     });
 });
