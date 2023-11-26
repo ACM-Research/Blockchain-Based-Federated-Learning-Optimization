@@ -14,8 +14,6 @@ contract MainContract {
     struct TreeNode {
         address userAddress;
         Role role;
-        uint256 leftChild;
-        uint256 rightChild;
         string ip;
     }
 
@@ -33,7 +31,7 @@ contract MainContract {
         mapping(address => uint256) contributions;
     }
 
-    uint256 public currentTask = 0;
+    uint256 public nextTaskId;
     mapping(uint256 => Task) public tasks;
 
     event TaskInitialized(uint256 taskId, uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount);
@@ -41,10 +39,9 @@ contract MainContract {
     event IterationComplete(uint256 taskId, uint256 iteration, address rootAggregator);
     event TreeStructureGenerated(uint256 taskId, address rootAggregator, TreeNode[] tree);
 
-    function initTask(uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount) public returns (uint256) {
-        currentTask++;
-        Task storage newTask = tasks[currentTask];
-        newTask.id = currentTask;
+    function initTask(uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount) public {
+        Task storage newTask = tasks[nextTaskId];
+        newTask.id = nextTaskId;
         newTask.requiredUsers = requiredUsers;
         newTask.totalIterations = totalIterations;
         newTask.fundingAmount = fundingAmount;
@@ -53,22 +50,22 @@ contract MainContract {
         newTask.currentIteration = 0;
         newTask.status = TaskStatus.Pending;
 
-        emit TaskInitialized(currentTask, requiredUsers, totalIterations, fundingAmount);
-        return currentTask;
+        emit TaskInitialized(nextTaskId, requiredUsers, totalIterations, fundingAmount);
+        nextTaskId++;
     }
 
-    function addUser(address userAddress, string memory ip) public {
-        Task storage task = tasks[currentTask];
+    function addUser(uint256 taskId, address userAddress, string memory ip) public {
+        Task storage task = tasks[taskId];
         require(task.isInitialized, "Task not initialized");
         require(task.users.length < task.requiredUsers, "Task is already full");
 
         task.users.push(User({ userAddress: userAddress, role: Role.Worker, ip: ip}));
         if (task.users.length == task.requiredUsers) {
             task.isFull = true;
-            startIteration(currentTask);
+            startIteration(taskId);
         }
 
-        emit UserAdded(currentTask, userAddress, ip);
+        emit UserAdded(taskId, userAddress, ip);
     }
 
     function startIteration(uint256 taskId) internal {
@@ -111,6 +108,8 @@ contract MainContract {
         }
     }
 
+    uint256 public entropy = block.timestamp;
+
     function generateTreeStructure(uint256 taskId) internal {
         Task storage task = tasks[taskId];
         uint256 numUsers = task.users.length;
@@ -119,25 +118,22 @@ contract MainContract {
             task.tree.push(TreeNode({
                 userAddress: task.users[i].userAddress,
                 role: Role.Worker,
-                leftChild: 0,
-                rightChild: 0,
                 ip: task.users[i].ip
             }));
         }
 
-        for (uint256 i = 0; i < numUsers; i++) {
-            if (i == 0) {
-                task.tree[i].role = Role.RootAggregator;
-            } else if (i <= numUsers / 2) {
-                task.tree[i].role = Role.SubAggregator;
-            }
+        for(uint256 i = task.tree.length -1 ; i > 0; i--) {
 
-            if (2 * i + 1 < numUsers) {
-                task.tree[i].leftChild = 2 * i + 1;
-            }
-            if (2 * i + 2 < numUsers) {
-                task.tree[i].rightChild = 2 * i + 2;
-            }
+            uint256 swapIndex = entropy % (task.tree.length - i);
+
+            TreeNode memory temp = TreeNode({
+                userAddress: task.tree[i].userAddress,
+                role: task.tree[i].role,
+                ip: task.tree[i].ip
+            });
+
+            task.tree[i] = task.tree[swapIndex];
+            task.tree[swapIndex] = temp;
         }
 
         emit TreeStructureGenerated(taskId, task.tree[0].userAddress, task.tree);

@@ -78,6 +78,7 @@ def receive_data(conn):
 server = "localhost:3000"
 contract_address = "0x3194cBDC3dbcd3E11a07892e7bA5c3394048Cc87"
 contract_abi = None
+task_id = 0
 
 user_address = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
 
@@ -99,6 +100,7 @@ if len(sys.argv) > 1:
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("localhost", random.randint(3001, 4000)))
+print("IP is ", s.getsockname()[0], "PORT is ", s.getsockname()[1])
 s.listen(2)
 
 if test_server:
@@ -141,22 +143,43 @@ else:
     
     event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
     
-    transaction_hash = contract.functions.addUser(user_address, "localhost" + str(s.getsockname()[1])).transact()
-    # Get the transaction receipt
-    receipt = web3.eth.getTransactionReceipt(transaction_hash)
-
-    # Get the return value
-    taskId = receipt.return_value
+    contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
     
+    tree = None
     # Wait for the event
     while True:
         for event in event_filter.get_new_entries():
             print("Event", event)
+            if event["args"]["taskId"] == task_id:
+                tree = event["args"]["tree"]
+                break
+        if tree != None:
             break
+        
         sleep(1)
         print("Waiting for event")
     
+    index = 0
+    for i, node in enumerate(tree):
+        if node[2] == str(s.getsockname()[0]) + ":" + str(s.getsockname()[1]):
+            index = i
+            break
+        
+    print("INDEX", index + 1)
+    parentIndex = int((index + 1) / 2)
+    print("PARENT INDEX", parentIndex)
+        
+    parent = {}
+    children = []
+    maxChildren = 2
 
+    if parentIndex != 0:
+        parent = {"ip": node[2].split(":")[0], "port": node[2].split(":")[1]}
+        parentConn.connect((parent["ip"], int(parent["port"])))
+        print("parent", parent)
+    else:
+        print("ROOT")
+        isRoot = True
 
 
 
