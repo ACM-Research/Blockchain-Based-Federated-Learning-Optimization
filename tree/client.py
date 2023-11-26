@@ -24,8 +24,14 @@ import io
 import torch
 from torch.autograd import Variable
 
+from brownie import *
+from web3 import Web3
+
 import pickle
 import struct
+import json
+
+test_server = False
 
 data_identifiers = {"info": 0, "data": 1, "image": 2}
 isRoot = False
@@ -70,16 +76,24 @@ def receive_data(conn):
     return (data_id, payload)
 
 server = "localhost:3000"
-address = "XXXXXXXXX"
-contract_loc = ""
+contract_address = "0x3194cBDC3dbcd3E11a07892e7bA5c3394048Cc87"
+contract_abi = None
+
+user_address = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+
+if (os.path.exists("./MainContract.json")):
+    with open("./MainContract.json") as f:
+        contract_abi = json.load(f)
+        print("Loaded contract abi from file")
+        contract_abi = contract_abi["abi"]
+        # print(contract_abi)
+else:
+    print("AAA")
 
 print(sys.argv)
 if len(sys.argv) > 1:
     server = sys.argv[1]
 
-
-# TEST SERVER CONNECTION
-serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # IMPORTANT CONNECTIONS
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,23 +101,64 @@ parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(("localhost", random.randint(3001, 4000)))
 s.listen(2)
 
-serv.connect(("localhost", 3000))
-# send port to server
-serv.send(str(s.getsockname()[1]).encode())
+if test_server:
+    # TEST SERVER CONNECTION
+    serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-parent = {}
-children = []
-maxChildren = 2
+    serv.connect(("localhost", 3000))
+    # send port to server
+    serv.send(str(s.getsockname()[1]).encode())
 
-# GET PARENT FROM SERVER
-temp = serv.recv(1024).decode()
-if temp != "None":
-    parent = {"ip": temp.split(" ")[0], "port": temp.split(" ")[1]}
-    parentConn.connect((parent["ip"], int(parent["port"])))
-    print("parent", parent)
+    parent = {}
+    children = []
+    maxChildren = 2
+
+    # GET PARENT FROM SERVER
+    temp = serv.recv(1024).decode()
+    if temp != "None":
+        parent = {"ip": temp.split(" ")[0], "port": temp.split(" ")[1]}
+        parentConn.connect((parent["ip"], int(parent["port"])))
+        print("parent", parent)
+    else:
+        print("ROOT")
+        isRoot = True
 else:
-    print("ROOT")
-    isRoot = True
+    # connect to web3 brownie contract
+    
+    
+    w3 = Web3(Web3.HTTPProvider("http://localhost:8545"))
+    w3.eth.defaultAccount = w3.eth.accounts[0]
+    # get user address
+    user_address = w3.eth.accounts[0]
+    print("User address", user_address)
+    
+    # Create a contract instance
+    contract = w3.eth.contract(address=contract_address, abi=contract_abi)
+    
+    # get nextTaskId public variable from contract (this is the task id)
+    
+    
+    
+    event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
+    
+    transaction_hash = contract.functions.addUser(user_address, "localhost" + str(s.getsockname()[1])).transact()
+    # Get the transaction receipt
+    receipt = web3.eth.getTransactionReceipt(transaction_hash)
+
+    # Get the return value
+    taskId = receipt.return_value
+    
+    # Wait for the event
+    while True:
+        for event in event_filter.get_new_entries():
+            print("Event", event)
+            break
+        sleep(1)
+        print("Waiting for event")
+    
+
+
+
 
 # LINEAR REGRESSION MODEL
 class linearRegression(torch.nn.Module):

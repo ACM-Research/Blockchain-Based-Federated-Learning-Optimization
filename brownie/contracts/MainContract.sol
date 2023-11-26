@@ -8,6 +8,7 @@ contract MainContract {
     struct User {
         address userAddress;
         Role role;
+        string ip;
     }
 
     struct TreeNode {
@@ -15,6 +16,7 @@ contract MainContract {
         Role role;
         uint256 leftChild;
         uint256 rightChild;
+        string ip;
     }
 
     struct Task {
@@ -31,17 +33,18 @@ contract MainContract {
         mapping(address => uint256) contributions;
     }
 
-    uint256 public nextTaskId;
+    uint256 public currentTask = 0;
     mapping(uint256 => Task) public tasks;
 
     event TaskInitialized(uint256 taskId, uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount);
-    event UserAdded(uint256 taskId, address user);
+    event UserAdded(uint256 taskId, address user, string ip);
     event IterationComplete(uint256 taskId, uint256 iteration, address rootAggregator);
     event TreeStructureGenerated(uint256 taskId, address rootAggregator, TreeNode[] tree);
 
-    function initTask(uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount) public {
-        Task storage newTask = tasks[nextTaskId];
-        newTask.id = nextTaskId;
+    function initTask(uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount) public returns (uint256) {
+        currentTask++;
+        Task storage newTask = tasks[currentTask];
+        newTask.id = currentTask;
         newTask.requiredUsers = requiredUsers;
         newTask.totalIterations = totalIterations;
         newTask.fundingAmount = fundingAmount;
@@ -50,22 +53,22 @@ contract MainContract {
         newTask.currentIteration = 0;
         newTask.status = TaskStatus.Pending;
 
-        emit TaskInitialized(nextTaskId, requiredUsers, totalIterations, fundingAmount);
-        nextTaskId++;
+        emit TaskInitialized(currentTask, requiredUsers, totalIterations, fundingAmount);
+        return currentTask;
     }
 
-    function addUser(uint256 taskId, address userAddress) public {
-        Task storage task = tasks[taskId];
+    function addUser(address userAddress, string memory ip) public {
+        Task storage task = tasks[currentTask];
         require(task.isInitialized, "Task not initialized");
         require(task.users.length < task.requiredUsers, "Task is already full");
 
-        task.users.push(User({ userAddress: userAddress, role: Role.Worker }));
+        task.users.push(User({ userAddress: userAddress, role: Role.Worker, ip: ip}));
         if (task.users.length == task.requiredUsers) {
             task.isFull = true;
-            startIteration(taskId);
+            startIteration(currentTask);
         }
 
-        emit UserAdded(taskId, userAddress);
+        emit UserAdded(currentTask, userAddress, ip);
     }
 
     function startIteration(uint256 taskId) internal {
@@ -117,7 +120,8 @@ contract MainContract {
                 userAddress: task.users[i].userAddress,
                 role: Role.Worker,
                 leftChild: 0,
-                rightChild: 0
+                rightChild: 0,
+                ip: task.users[i].ip
             }));
         }
 
