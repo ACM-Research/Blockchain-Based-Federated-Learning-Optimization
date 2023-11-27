@@ -139,8 +139,6 @@ else:
     
     # get nextTaskId public variable from contract (this is the task id)
     
-    
-    
     event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
     
     contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()

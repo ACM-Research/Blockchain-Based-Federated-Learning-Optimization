@@ -17,3 +17,7 @@
 ```python tree/client.py```
 7. badda bing badda boom u have a trained model somewhere
  
+## Things that still need to be done:
+1. Restructure tree (not too hard) just need to create a restructure msg handler from old root
+2. The fed average is not actually evenly averaged (D:) Fix: divide the node's params by the total num of nodes THEN add them together. idk why i didn't  do it that way to begin with :/
+3. Figure out the best way to send the WHOLE model params to tree or just leave it as a local .pth file in the tree folder. Maybe we can upload it to some cloud thing somewhere like an aws or google bucket and store the url bc i don't know if solidity can handle big calls/transactions very well
