@@ -26,4 +26,4 @@ def main():
     
     
     
-    input("Press Enter to continue...")
+    input("Press 'Enter' to stop the contract...")
