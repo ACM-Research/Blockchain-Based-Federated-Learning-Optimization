@@ -175,7 +175,7 @@ else:
 
     if parentIndex != 0:
         sleep(3)
-        parent = {"ip": tree[parentIndex][2].split(":")[0], "port": tree[parentIndex][2].split(":")[1]}
+        parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
         parentConn.connect((parent["ip"], int(parent["port"])))
         print("parent", parent)
     else:
