@@ -1,6 +1,6 @@
 # Blockchain-Based-Federated-Learning-Optimization
 
-## How to run test the program
+## How to test run the program
 1. download python 3.9.16
 ```python -p 3.9.16 venv .venv```
 2. install dependencies
