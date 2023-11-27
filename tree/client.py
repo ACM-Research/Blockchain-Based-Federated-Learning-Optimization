@@ -174,7 +174,8 @@ else:
     maxChildren = 2
 
     if parentIndex != 0:
-        parent = {"ip": node[2].split(":")[0], "port": node[2].split(":")[1]}
+        sleep(3)
+        parent = {"ip": tree[parentIndex][2].split(":")[0], "port": tree[parentIndex][2].split(":")[1]}
         parentConn.connect((parent["ip"], int(parent["port"])))
         print("parent", parent)
     else:

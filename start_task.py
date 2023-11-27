@@ -30,7 +30,9 @@ w3.eth.defaultAccount = w3.eth.accounts[0]
 # Create a contract instance
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-result = contract.functions.initTask(2, 2, 100).transact()
+NUM_USERS = 4
+
+result = contract.functions.initTask(NUM_USERS, 2, 100).transact()
 
 # Get the transaction receipt
 receipt = w3.eth.getTransactionReceipt(result)
