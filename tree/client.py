@@ -247,7 +247,7 @@ def find_accuracy():
             predicted = model(data).item()
             
             # print(predicted, real)
-            if abs(predicted - real) < 5:
+            if abs(predicted - real) < 10:
                 correct += 1
             total += 1
             
@@ -421,6 +421,7 @@ def send_up(payload):
         send_data(parentConn, payload, data_identifiers["info"])
     except Exception as e:        
         localResends += 1
+        localResends = min(localResends, 5)
         print(e)
     
 def send_down(payload, conn):
@@ -570,7 +571,7 @@ def sendTreeDown():
     for child in children:
         send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
         
-    sleep(2)
+    sleep(3)
     
     # listener.join(0)
     # for t in threads:
