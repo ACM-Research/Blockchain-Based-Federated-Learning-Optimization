@@ -75,21 +75,36 @@ contract MainContract {
         task.currentIteration++;
     }
 
-    function completeIteration(uint256 taskId, address[] memory contributors, uint256[] memory values) public {
+    // function completeIteration(uint256 taskId, address[] memory contributors, uint256[] memory values) public {
+    //     Task storage task = tasks[taskId];
+    //     require(task.currentIteration <= task.totalIterations, "All iterations completed");
+    //     require(msg.sender == getRootAggregatorAddress(taskId), "Only Root Aggregator can complete the iteration");
+
+    //     uint256 totalContributionForIteration = 1000;
+    //     for (uint256 i = 0; i < contributors.length; i++) {
+    //         uint256 contributionPercentage = (values[i] * 100) / totalContributionForIteration;
+    //         task.contributions[contributors[i]] += contributionPercentage;
+    //     }
+
+    //     if (task.currentIteration < task.totalIterations) {
+    //         startIteration(taskId);
+    //     } else {
+    //         distributeFunds(taskId);
+    //         task.status = TaskStatus.Completed;
+    //     }
+
+    //     emit IterationComplete(taskId, task.currentIteration, task.tree[0].userAddress);
+    // }
+
+    function completeIteration(uint256 taskId) public {
         Task storage task = tasks[taskId];
         require(task.currentIteration <= task.totalIterations, "All iterations completed");
         require(msg.sender == getRootAggregatorAddress(taskId), "Only Root Aggregator can complete the iteration");
 
-        uint256 totalContributionForIteration = 1000;
-        for (uint256 i = 0; i < contributors.length; i++) {
-            uint256 contributionPercentage = (values[i] * 100) / totalContributionForIteration;
-            task.contributions[contributors[i]] += contributionPercentage;
-        }
-
         if (task.currentIteration < task.totalIterations) {
             startIteration(taskId);
         } else {
-            distributeFunds(taskId);
+            // distributeFunds(taskId);
             task.status = TaskStatus.Completed;
         }
 

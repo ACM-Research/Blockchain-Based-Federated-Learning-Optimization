@@ -99,9 +99,13 @@ if len(sys.argv) > 1:
 # IMPORTANT CONNECTIONS
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(("localhost", random.randint(3001, 4000)))
+port = random.randint(3001, 4000)
+s.bind(("localhost", port))
 print("IP is ", s.getsockname()[0], "PORT is ", s.getsockname()[1])
 s.listen(2)
+
+tree = None
+contract = None
 
 if test_server:
     # TEST SERVER CONNECTION
@@ -143,7 +147,7 @@ else:
     
     contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
     
-    tree = None
+    
     # Wait for the event
     while True:
         for event in event_filter.get_new_entries():
@@ -180,7 +184,30 @@ else:
         print("ROOT")
         isRoot = True
 
+def listenForNewTreeRoot():
+    global tree
+    global contract
+    global task_id
+    global parentConn
+    
+    tree = None
+    event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
+    while True:
+        for event in event_filter.get_new_entries():
+            print("Event", event)
+            if event["args"]["taskId"] == task_id:
+                tree = event["args"]["tree"]
+                break
+        if tree != None:
+            break
+        
+        sleep(1)
+        print("Waiting for event")
+        
+    
 
+
+    
 
 # LINEAR REGRESSION MODEL
 class linearRegression(torch.nn.Module):
@@ -218,15 +245,19 @@ def work():
     # train to numpy array
     x_train = x_train.to_numpy().astype(np.float32)
     y_train = y_train.to_numpy().astype(np.float32)
-
-    # get model if exists
-    if os.path.exists('./model.pth'):
-        model = torch.load('./model.pth')
-    else:
-        model = linearRegression(inputDim, outputDim)
     
-    if torch.cuda.is_available():
-        model.cuda()
+    # expand y_train so that it iss 714, 1
+    y_train = np.expand_dims(y_train, axis=1)
+
+    if model == None:
+        # get model if exists
+        if os.path.exists('./model.pth'):
+            model = torch.load('./model.pth')
+        else:
+            model = linearRegression(inputDim, outputDim)
+        
+        if torch.cuda.is_available():
+            model.cuda()
     
     criterion = torch.nn.MSELoss() 
     optimizer = torch.optim.SGD(model.parameters(), lr=learningRate)
@@ -257,7 +288,7 @@ def work():
         # print('epoch {}, loss {}'.format(epoch, loss.item()))
     
     # save model
-    torch.save(model, './model.pth')    
+    # torch.save(model, './model.pth')    
     
     buffer = io.BytesIO()
     torch.save(model, buffer)
@@ -269,9 +300,11 @@ def work():
     working = False
 
 child1model = None
+finished = False
 # FEDAVG WITH 2 CHILDREN
 def fedAvg3(m1, m2, m3):
     global child1model
+    global finished
     
     while working:
         sleep(1)
@@ -291,11 +324,14 @@ def fedAvg3(m1, m2, m3):
         torch.save(m1, buffer)
         # SEND UP THE TREE ONCE AVG IS DONE
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
+    else:
+        finished = True
     child1model = None
     return m1
 
 # FEDAVG WITH 1 CHILD
 def fedAvg2(m1, m2):
+    global finished
     
     while working:
         sleep(1)
@@ -314,9 +350,13 @@ def fedAvg2(m1, m2):
         torch.save(m1, buffer)
         # SEND UP THE TREE ONCE AVG IS DONE
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
+    else:
+        finished = True
     return m1
 
 children = []
+
+
 
 # CREATE NEW THREAD TO TRAIN THE MODEL
 def start_epoch():
@@ -328,6 +368,8 @@ def send_broadcast_down(payload):
     for child in children:
         send_data(child["conn"], payload, data_identifiers["info"])
     
+def send_up(payload):
+    send_data(parentConn, payload, data_identifiers["info"])
 
 # HANDLE MESSAGES FROM CHILDREN (AWAIT MODEL DATA)
 def handle_client(conn, conn_name):
@@ -339,6 +381,8 @@ def handle_client(conn, conn_name):
     """
     global child1model
     while True:
+        if restructuring:
+            break
         try:
             if isRoot and waiting:
                 continue
@@ -374,45 +418,206 @@ def handle_client(conn, conn_name):
                     send_broadcast_down("start")
                 else:
                     print(payload)
-        except KeyboardInterrupt:
-            if (isRoot):
-                send_broadcast_down("start")
-                start_epoch()
+        except OSError:
+            print("[INFO]: {} forcibly closed the connection".format(conn_name))
+            return
     conn.close()
 
+restructuring = False
+
+threads = []
+
 # LISTEN FOR CONNECTIONS FROM CHILDREN AND CREATE A THREAD FOR EACH
-def connectToChildren():
+def connectToChildren(s, a):
+    global children
+    global parentConn
+    global tree
+    global isRoot
+    global parent
+    global index
+    # global s
+    global threads
+    
+    temp = None
+    
     while True:
+        if restructuring or s == None:
+            break
+        
         try:
             # Listen for connections
-            conn, (address, port) = s.accept()
+            conn, (address, tport) = s.accept()
             conn_name = "{}|{}".format(address, port)
-            children.append({"ip": address, "port": port, "conn": conn})
+            children.append({"ip": address, "port": tport, "conn": conn})
             print("[INFO]: Accepted the connection from {}".format(conn_name))
-            threading.Thread(target=handle_client, args=(conn, conn_name)).start()
+            temp = threading.Thread(target=handle_client, args=(conn, conn_name))
+            temp.start()
+            threads.append(temp)
             
         # break the while loop when keyboard intterupt is received and server will be closed
-        except KeyboardInterrupt:
+        except ConnectionAbortedError:
             print("\n[INFO]: Keyboard Interrupt Received")
             break
+        
+    temp.join(0)
 
     s.close()
+    s = None
     print("[INFO]: Server Closed")
 
 # START A THREAD FOR LISTENING TO CHILDREN (FOR FEDAVG)
-threading.Thread(target=connectToChildren).start()
+listener = threading.Thread(target=connectToChildren, args=(s,0))
+listener.start()
 
-# AWAIT FOR START AS ROOT, OTHERWISE ACT AS NODE AND PASS MESSAGES DOWN
-if isRoot:
-    input("Press Enter to start the tree...\n\n")
-    start_epoch()
-    send_broadcast_down("start")
-    waiting = False
-else:
-    while True:
-        # receive from parent
-        data_id, payload = receive_data(parentConn)
-        if payload == "start":
-            start_epoch()
-            send_broadcast_down("start")
+def sendTreeDown():
+    global children
+    global parentConn
+    global tree
+    global isRoot
+    global parent
+    global index
+    global s
+    global parentIndex
+    global listener
+    global maxChildren
+    global restructuring
+    global threads
+    
+    restructuring = True
+    
+    # stop listening for children
+    # listener.join(0)
+    
+    for child in children:
+        send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
+        
+    sleep(1)
+    
+    listener.join(0)
+    for t in threads:
+        t.join(0)
+        # remove thread from list
+    threads = []
+        
+    # disconnect from everyone
+    for child in children:
+        child["conn"].close()
+    
+    children = []
+    
+    if parentConn != None:
+        parentConn.close()
+        
+    if s != None:
+        s.close()
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("localhost", port))
+    print("IP is ", s.getsockname()[0], "PORT is ", s.getsockname()[1])
+    s.listen(2)
+    
+    sleep(5)
+    restructuring = False
+    listener = threading.Thread(target=connectToChildren, args=(s,0))
+        
+    index = 0
+    for i, node in enumerate(tree):
+        if node[2] == str(s.getsockname()[0]) + ":" + str(s.getsockname()[1]):
+            index = i
+            break
+        
+    print("INDEX", index + 1)
+    parentIndex = int((index + 1) / 2)
+    print("PARENT INDEX", parentIndex)
+        
+    parent = {}
+    children = []
+    maxChildren = 2
 
+    if parentIndex != 0:
+        sleep(10)
+        parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
+        parentConn.connect((parent["ip"], int(parent["port"])))
+        print("parent", parent)
+        isRoot = False
+    else:
+        print("ROOT")
+        isRoot = True
+
+while True:
+    
+    # AWAIT FOR START AS ROOT, OTHERWISE ACT AS NODE AND PASS MESSAGES DOWN
+    if isRoot:
+        # input("Press Enter to start the tree...\n\n")
+        print("Waiting for children")
+        # wait for children to connect
+        while len(children) != maxChildren:
+            if len(tree) == 2 and len(children) == 1:
+                break
+            sleep(1)
+        
+        print("SENDING START")
+        start_epoch()
+        send_broadcast_down("start")
+        waiting = False
+        # send transaction to model
+        
+        while not finished:
+            sleep(1)
+            
+        print("ITERATION COMPLETE")
+        
+        tree = None
+        event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
+        contract.functions.completeIteration(task_id).transact()
+        
+        while True:
+            for event in event_filter.get_new_entries():
+                print("Event", event)
+                if event["args"]["taskId"] == task_id:
+                    tree = event["args"]["tree"]
+                    break
+            if tree != None:
+                break
+            
+            sleep(1)
+            print("Waiting for event")
+        
+        sendTreeDown()
+        
+        
+        
+        
+        
+    else:
+        while not isRoot:
+            
+            if not restructuring:
+                print("TEST")
+                try:
+                    data_id, payload = receive_data(parentConn)
+                    # get type of data
+                    
+                    if data_id == data_identifiers["info"]:
+                        if payload == "start":
+                            print("RECEIVED START")
+                            start_epoch()
+                            send_broadcast_down("start")
+                    elif data_id == data_identifiers["data"]:
+                        if payload["type"] == "model":
+                            model = payload["model"]
+                            print("MODEL", model)
+                        elif payload["type"] == "tree":
+                            # get tree
+                            # send_up("received")
+                            tree = payload["tree"]
+                            print("TREE", tree)
+                            sendTreeDown()
+                except ConnectionResetError:
+                    print("Connection reset")
+                    break
+            
+            
+                
+# threading.Thread(target=iterLoop).start()

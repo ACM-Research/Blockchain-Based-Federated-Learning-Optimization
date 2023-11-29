@@ -12,5 +12,14 @@
             "console": "integratedTerminal",
             "justMyCode": true
         }
+        // run test.bat
+        {
+            "name": "Python: test.bat",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/test.bat",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
     ]
 }

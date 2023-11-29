@@ -30,14 +30,24 @@ w3.eth.defaultAccount = w3.eth.accounts[0]
 # Create a contract instance
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-NUM_USERS = 4
+NUM_USERS = 2
 
 result = contract.functions.initTask(NUM_USERS, 2, 100).transact()
 
 # Get the transaction receipt
 receipt = w3.eth.getTransactionReceipt(result)
 
+
+
+
 print("Task Created")
+
+# print(receipt)
+
+# get gas used
+gas_used = receipt['gasUsed']
+
+print ("Gas used: ", gas_used)
 
 # # Get the return value
 # return_value = receipt.return_value
