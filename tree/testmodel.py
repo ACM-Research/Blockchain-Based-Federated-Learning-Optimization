@@ -16,6 +16,9 @@ import io
 import torch
 from torch.autograd import Variable
 
+# open a file to append logs to
+f = open("./logs.txt", "a")
+
 
 # LINEAR REGRESSION MODEL
 class linearRegression(torch.nn.Module):
@@ -30,6 +33,76 @@ class linearRegression(torch.nn.Module):
 
 working = True
 model = None
+
+
+
+
+def find_accuracy():
+    global model
+    global working
+    
+    inputDim = 3        # takes variable 'x' 
+    outputDim = 1       # takes variable 'y'
+    learningRate = 0.01 
+    epochs = 100
+        
+    train = pd.read_csv('./train.csv')
+    # shuffle data
+    train = train.sample(frac=1)
+    
+    train.dropna(subset=['Age'], inplace=True)
+    
+    test = pd.read_csv('./test.csv')
+    y_train = train["Age"]
+
+    features = ["Pclass", "SibSp", "Parch"]
+    x_train = pd.get_dummies(train[features])
+    X_test = pd.get_dummies(test[features])
+    
+    # train to numpy array
+    x_train = x_train.to_numpy().astype(np.float32)
+    y_train = y_train.to_numpy().astype(np.float32)
+    
+    # expand y_train so that it iss 714, 1
+    y_train = np.expand_dims(y_train, axis=1)
+
+    if model == None:
+        # get model if exists
+        if os.path.exists('./model.pth'):
+            model = torch.load('./model.pth')
+        else:
+            model = linearRegression(inputDim, outputDim)
+        
+        if torch.cuda.is_available():
+            model.cuda()
+            
+    
+    # find model accuracy
+    correct = 0
+    total = 0
+    
+    if torch.cuda.is_available():
+        inputs = Variable(torch.from_numpy(x_train).cuda())
+        labels = Variable(torch.from_numpy(y_train).cuda())
+    else:
+        inputs = Variable(torch.from_numpy(x_train))
+        labels = Variable(torch.from_numpy(y_train))
+        
+    
+    with torch.no_grad():
+        for i, data in enumerate(inputs):
+            real = labels[i].item()
+            predicted = model(data).item()
+            
+            print(predicted, real)
+            if abs(predicted - real) < 5:
+                correct += 1
+            total += 1
+            
+    print("Accuracy: ", round(correct/total * 100, 3))
+
+
+
 # TRAIN THE MODEL
 def work():
     global model
@@ -94,6 +167,9 @@ def work():
 
         # update parameters
         optimizer.step()
+        
+        # log loss
+        f.write('epoch {}, loss {}\n'.format(epoch, loss.item()))
 
         # print('epoch {}, loss {}'.format(epoch, loss.item()))
     
@@ -107,3 +183,4 @@ def work():
     working = False
     
 work()
+find_accuracy()

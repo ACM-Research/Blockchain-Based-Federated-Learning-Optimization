@@ -1,5 +1,5 @@
 from time import sleep
-import requests
+import json
 import sys
 import socket
 import random
@@ -29,9 +29,19 @@ from web3 import Web3
 
 import pickle
 import struct
-import json
+
+import time
+
+
+# open a csv file to append logs to (for testing)
+# model_accuracy = open("./data/model_accuracy.csv", "a")
+# gas_costs = open("./data/gas_costs.csv", "a")
+# speed = open("./data/speed.csv", "a")
+
+start_time = None
 
 test_server = False
+iteration = 0
 
 data_identifiers = {"info": 0, "data": 1, "image": 2}
 isRoot = False
@@ -145,13 +155,17 @@ else:
     
     event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
     
-    contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
-    
-    
+    tx = contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
+    # get gas used
+    receipt = w3.eth.getTransactionReceipt(tx)
+    gas_used = receipt['gasUsed']
+    gas_costs = open("./data/gas_costs.csv", "a")
+    gas_costs.write(str(port) + ", addUser, " + str(gas_used) + "\n")
+    gas_costs.close()
     # Wait for the event
     while True:
         for event in event_filter.get_new_entries():
-            print("Event", event)
+            # print("Event", event)
             if event["args"]["taskId"] == task_id:
                 tree = event["args"]["tree"]
                 break
@@ -182,30 +196,6 @@ else:
     else:
         print("ROOT")
         isRoot = True
-
-def listenForNewTreeRoot():
-    global tree
-    global contract
-    global task_id
-    global parentConn
-    
-    tree = None
-    event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
-    while True:
-        for event in event_filter.get_new_entries():
-            print("Event", event)
-            if event["args"]["taskId"] == task_id:
-                tree = event["args"]["tree"]
-                break
-        if tree != None:
-            break
-        
-        sleep(1)
-        print("Waiting for event")
-        
-    
-
-
     
 
 # LINEAR REGRESSION MODEL
@@ -221,6 +211,74 @@ class linearRegression(torch.nn.Module):
 working = True
 model = None
 children = []
+
+def find_accuracy():
+    global model
+    global working
+    
+    inputDim = 3        # takes variable 'x' 
+    outputDim = 1       # takes variable 'y'
+    learningRate = 0.01 
+    epochs = 100
+        
+    train = pd.read_csv('./train.csv')
+    # shuffle data
+    train = train.sample(frac=1)
+    
+    train.dropna(subset=['Age'], inplace=True)
+    
+    test = pd.read_csv('./test.csv')
+    y_train = train["Age"]
+
+    features = ["Pclass", "SibSp", "Parch"]
+    x_train = pd.get_dummies(train[features])
+    X_test = pd.get_dummies(test[features])
+    
+    # train to numpy array
+    x_train = x_train.to_numpy().astype(np.float32)
+    y_train = y_train.to_numpy().astype(np.float32)
+    
+    # expand y_train so that it iss 714, 1
+    y_train = np.expand_dims(y_train, axis=1)
+
+    if model == None:
+        # get model if exists
+        if os.path.exists('./model.pth'):
+            model = torch.load('./model.pth')
+        else:
+            model = linearRegression(inputDim, outputDim)
+        
+        if torch.cuda.is_available():
+            model.cuda()
+            
+    
+    # find model accuracy
+    correct = 0
+    total = 0
+    
+    if torch.cuda.is_available():
+        inputs = Variable(torch.from_numpy(x_train).cuda())
+        labels = Variable(torch.from_numpy(y_train).cuda())
+    else:
+        inputs = Variable(torch.from_numpy(x_train))
+        labels = Variable(torch.from_numpy(y_train))
+        
+    
+    with torch.no_grad():
+        for i, data in enumerate(inputs):
+            real = labels[i].item()
+            predicted = model(data).item()
+            
+            # print(predicted, real)
+            if abs(predicted - real) < 5:
+                correct += 1
+            total += 1
+            
+    print("Accuracy: ", round(correct/total * 100, 3))
+    model_accuracy = open("./data/model_accuracy.csv", "a")
+    model_accuracy.write(str(iteration) + ", " + str(correct/total * 100) + "\n")
+    model_accuracy.close()
+
 # TRAIN THE MODEL
 def work():
     global model
@@ -232,6 +290,8 @@ def work():
     epochs = 100
         
     train = pd.read_csv('./train.csv')
+    # shuffle data
+    train = train.sample(frac=1)
     
     train.dropna(subset=['Age'], inplace=True)
     
@@ -261,6 +321,7 @@ def work():
     
     criterion = torch.nn.MSELoss() 
     optimizer = torch.optim.SGD(model.parameters(), lr=learningRate)
+    loss = None
     for epoch in range(epochs):
         # Converting inputs and labels to Variable
         if torch.cuda.is_available():
@@ -284,11 +345,9 @@ def work():
 
         # update parameters
         optimizer.step()
-
-        # print('epoch {}, loss {}'.format(epoch, loss.item()))
     
     # save model
-    # torch.save(model, './model.pth')    
+    # torch.save(model, './model.pth')        
     
     buffer = io.BytesIO()
     torch.save(model, buffer)
@@ -305,14 +364,15 @@ finished = False
 def fedAvg3(m1, m2, m3):
     global child1model
     global finished
+    global model
     
     while working:
         sleep(1)
     
-    print("WORKING 3")
-    print(m1)
-    print(m2)
-    print(m3)
+    print("AVERAGING 3 MODELS")
+    # print(m1)
+    # print(m2)
+    # print(m3)
     # average the parameters of the two models
     for param1, param2, param3 in zip(m1.parameters(), m2.parameters(), m3.parameters()):
         param1.data = (param1.data + param2.data + param3.data) / 3
@@ -324,6 +384,9 @@ def fedAvg3(m1, m2, m3):
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
     else:
         torch.save(m1, './avg.pth')
+        model = m1
+        threading.Thread(target=find_accuracy).start()
+        
         for child in children:
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
@@ -333,13 +396,14 @@ def fedAvg3(m1, m2, m3):
 # FEDAVG WITH 1 CHILD
 def fedAvg2(m1, m2):
     global finished
+    global model
     
     while working:
         sleep(1)
     
-    print("WORKING 2")
-    print(m1)
-    print(m2)
+    print("AVERAGING 2 MODELS")
+    # print(m1)
+    # print(m2)
     # average the parameters of the two models
     for param1, param2 in zip(m1.parameters(), m2.parameters()):
         param1.data = (param1.data + param2.data) / 2
@@ -352,6 +416,8 @@ def fedAvg2(m1, m2):
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
     else:
         torch.save(m1, './avg.pth')
+        model = m1
+        threading.Thread(target=find_accuracy).start()
         for child in children:
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
@@ -500,7 +566,7 @@ def sendTreeDown():
     for child in children:
         send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
         
-    sleep(1)
+    # sleep(1)
     
     listener.join(0)
     for t in threads:
@@ -526,7 +592,7 @@ def sendTreeDown():
     print("IP is ", s.getsockname()[0], "PORT is ", s.getsockname()[1])
     s.listen(2)
     
-    sleep(5)
+    # sleep(5)
     restructuring = False
     stopThreads = False
     listener = threading.Thread(target=connectToChildren, args=(s,stopThreads))
@@ -547,7 +613,7 @@ def sendTreeDown():
     maxChildren = 2
 
     if parentIndex != 0:
-        sleep(10)
+        # sleep(10)
         parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
         parentConn.connect((parent["ip"], int(parent["port"])))
         print("parent", parent)
@@ -570,33 +636,48 @@ while True:
             sleep(1)
         
         print("SENDING START")
+        
+        # log the start time
+        iteration += 1
+        speed = open("./data/speed.csv", "a")
+        speed.write(str(iteration) + ", start, " + str(time.time()) + "\n")
+        speed.close()
+        
         start_epoch()
         send_broadcast_down("start")
         waiting = False
         # send transaction to model
         
         while not finished:
-            sleep(1)
+            sleep(0.1)
             
         print("ITERATION COMPLETE")
+        speed = open("./data/speed.csv", "a")
+        speed.write(str(iteration) + ", end, " + str(time.time()) + "\n")
+        speed.close()
         
         tree = None
         event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
         event_filter2 = contract.events.IterationComplete.createFilter(fromBlock='latest')
-        contract.functions.completeIteration(task_id).transact()
-        
+        tx = contract.functions.completeIteration(task_id).transact()
+        # get gas used
+        receipt = w3.eth.getTransactionReceipt(tx)
+        gas_used = receipt['gasUsed']
+        gas_costs = open("./data/gas_costs.csv", "a")
+        gas_costs.write(str(iteration) + ", " + str(port) + ", completeIteration, " + str(gas_used) + "\n")
+        gas_costs.close()
         restructuring = True
         
         
         while True:
             for event in event_filter.get_new_entries():
-                print("Event", event)
+                # print("Event", event)
                 if event["args"]["taskId"] == task_id:
                     tree = event["args"]["tree"]
                     break
                 
             for event in event_filter2.get_new_entries():
-                print("Event", event)
+                # print("Event", event)
                 if event["args"]["taskId"] == task_id and event["args"]["complete"]:
                     finishedBlock = True
                     break
@@ -609,6 +690,17 @@ while True:
         if finishedBlock:
             print("FEDERATED LEARNING COMPLETE")
             send_broadcast_down("stop")
+            
+            gas_costs = open("./data/gas_costs.csv", "a")
+            model_accuracy = open("./data/model_accuracy.csv", "a")
+            speed = open("./data/speed.csv", "a")
+            gas_costs.write("\n\n\n")
+            model_accuracy.write("\n\n\n")
+            speed.write("\n\n\n")
+            gas_costs.close()
+            model_accuracy.close()
+            speed.close()
+            
             break
         
         sendTreeDown()
@@ -628,6 +720,7 @@ while True:
                     if data_id == data_identifiers["info"]:
                         if payload == "start":
                             print("RECEIVED START")
+                            iteration += 1
                             start_epoch()
                             send_broadcast_down("start")
                         elif payload == "stop":
@@ -646,7 +739,11 @@ while True:
                             sendTreeDown()
                 except ConnectionResetError:
                     print("Connection reset")
-                    break
+                    parentConn.close()
+                    parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    parentConn.connect((parent["ip"], int(parent["port"])))
+                    print("parent", parent)
+                    
             
     if finishedBlock:
         break

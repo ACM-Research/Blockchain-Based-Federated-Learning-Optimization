@@ -30,9 +30,10 @@ w3.eth.defaultAccount = w3.eth.accounts[0]
 # Create a contract instance
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-NUM_USERS = 2
+NUM_USERS = 3
+TOTAL_ITERATIONS = 100
 
-result = contract.functions.initTask(NUM_USERS, 2, 100).transact()
+result = contract.functions.initTask(NUM_USERS, TOTAL_ITERATIONS, 100).transact()
 
 # Get the transaction receipt
 receipt = w3.eth.getTransactionReceipt(result)
@@ -47,7 +48,9 @@ print("Task Created")
 # get gas used
 gas_used = receipt['gasUsed']
 
+gas_costs = open("./data/gas_costs.csv", "a")
 print ("Gas used: ", gas_used)
+gas_costs.write("0, initTask, " + str(gas_used) + ", " + str(NUM_USERS) + ", " + str(TOTAL_ITERATIONS) + "\n")
 
 # # Get the return value
 # return_value = receipt.return_value
