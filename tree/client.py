@@ -117,85 +117,62 @@ s.listen(2)
 tree = None
 contract = None
 
-if test_server:
-    # TEST SERVER CONNECTION
-    serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    
+w3 = Web3(Web3.HTTPProvider("http://localhost:8545"))
+w3.eth.defaultAccount = w3.eth.accounts[0]
+# get user address
+user_address = w3.eth.accounts[0]
+print("User address", user_address)
 
-    serv.connect(("localhost", 3000))
-    # send port to server
-    serv.send(str(s.getsockname()[1]).encode())
+# Create a contract instance
+contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-    parent = {}
-    children = []
-    maxChildren = 2
+# get nextTaskId public variable from contract (this is the task id)
 
-    # GET PARENT FROM SERVER
-    temp = serv.recv(1024).decode()
-    if temp != "None":
-        parent = {"ip": temp.split(" ")[0], "port": temp.split(" ")[1]}
-        parentConn.connect((parent["ip"], int(parent["port"])))
-        print("parent", parent)
-    else:
-        print("ROOT")
-        isRoot = True
+event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
+
+tx = contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
+# get gas used
+receipt = w3.eth.getTransactionReceipt(tx)
+gas_used = receipt['gasUsed']
+gas_costs = open("./data/gas_costs.csv", "a")
+gas_costs.write(str(port) + ", addUser, " + str(gas_used) + "\n")
+gas_costs.close()
+# Wait for the event
+while True:
+    for event in event_filter.get_new_entries():
+        # print("Event", event)
+        if event["args"]["taskId"] == task_id:
+            tree = event["args"]["tree"]
+            break
+    if tree != None:
+        break
+    
+    sleep(1)
+
+index = 0
+for i, node in enumerate(tree):
+    if node[2] == str(s.getsockname()[0]) + ":" + str(s.getsockname()[1]):
+        index = i
+        break
+    
+print("INDEX", index + 1)
+parentIndex = int((index + 1) / 2)
+print("PARENT INDEX", parentIndex)
+    
+parent = {}
+children = []
+maxChildren = 2
+
+if parentIndex != 0:
+    sleep(3)
+    parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
+    parentConn.connect((parent["ip"], int(parent["port"])))
+    print("parent", parent)
 else:
-    # connect to web3 brownie contract
-    
-    
-    w3 = Web3(Web3.HTTPProvider("http://localhost:8545"))
-    w3.eth.defaultAccount = w3.eth.accounts[0]
-    # get user address
-    user_address = w3.eth.accounts[0]
-    print("User address", user_address)
-    
-    # Create a contract instance
-    contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-    
-    # get nextTaskId public variable from contract (this is the task id)
-    
-    event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
-    
-    tx = contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
-    # get gas used
-    receipt = w3.eth.getTransactionReceipt(tx)
-    gas_used = receipt['gasUsed']
-    gas_costs = open("./data/gas_costs.csv", "a")
-    gas_costs.write(str(port) + ", addUser, " + str(gas_used) + "\n")
-    gas_costs.close()
-    # Wait for the event
-    while True:
-        for event in event_filter.get_new_entries():
-            # print("Event", event)
-            if event["args"]["taskId"] == task_id:
-                tree = event["args"]["tree"]
-                break
-        if tree != None:
-            break
-        
-        sleep(1)
-    
-    index = 0
-    for i, node in enumerate(tree):
-        if node[2] == str(s.getsockname()[0]) + ":" + str(s.getsockname()[1]):
-            index = i
-            break
-        
-    print("INDEX", index + 1)
-    parentIndex = int((index + 1) / 2)
-    print("PARENT INDEX", parentIndex)
-        
-    parent = {}
-    children = []
-    maxChildren = 2
-
-    if parentIndex != 0:
-        sleep(3)
-        parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
-        parentConn.connect((parent["ip"], int(parent["port"])))
-        print("parent", parent)
-    else:
-        print("ROOT")
-        isRoot = True
+    print("ROOT")
+    isRoot = True
     
 
 # LINEAR REGRESSION MODEL
@@ -437,9 +414,19 @@ def send_broadcast_down(payload):
     for child in children:
         send_data(child["conn"], payload, data_identifiers["info"])
     
+localResends = 0
 def send_up(payload):
-    send_data(parentConn, payload, data_identifiers["info"])
+    global localResends
+    try:
+        send_data(parentConn, payload, data_identifiers["info"])
+    except Exception as e:        
+        localResends += 1
+        print(e)
+    
+def send_down(payload, conn):
+    send_data(conn, payload, data_identifiers["info"])
 
+confirmedChildren = 0
 # HANDLE MESSAGES FROM CHILDREN (AWAIT MODEL DATA)
 def handle_client(conn, conn_name):
     """
@@ -449,12 +436,12 @@ def handle_client(conn, conn_name):
         con_name: name of the connection
     """
     global child1model
+    global confirmedChildren
     while True:
-        if restructuring:
+        if restructuring or stopThreads:
             break
         try:
-            if isRoot and waiting:
-                continue
+            
             
             data_id, payload = receive_data(conn)
             # if data identifier is image then save the image
@@ -462,6 +449,8 @@ def handle_client(conn, conn_name):
                 print("---Recieved image too ---")
             # otherwise send the data to do something
             elif data_id == data_identifiers["data"]:
+                while waiting:
+                    sleep(0.1)
                 print("---Recieved data too ---")
                 # payload bytes to model
                 buffer = io.BytesIO(payload)
@@ -485,11 +474,18 @@ def handle_client(conn, conn_name):
                 elif payload == "start":
                     start_epoch()
                     send_broadcast_down("start")
+                elif payload == "received":
+                    print("CHILD CONFIRMED")
+                    confirmedChildren += 1
+                    if not isRoot:
+                        send_up("received")
                 else:
                     print(payload)
-        except OSError:
-            print("[INFO]: {} forcibly closed the connection".format(conn_name))
+        except Exception as e:
+            print(e)
+            # check if connection is closed
             return
+            # return
         sleep(0.1)
     conn.close()
 
@@ -514,18 +510,19 @@ def connectToChildren(s, stpThread):
     temp = None
     
     while True:
-        if restructuring or s == None or stpThread:
+        if restructuring or s == None or stpThread or stopThreads:
             print("RESTRUCTURING")
             break
         
         try:
             # Listen for connections
             conn, (address, tport) = s.accept()
-            conn_name = "{}|{}".format(address, port)
+            conn_name = "{}|{}".format(address, tport)
             children.append({"ip": address, "port": tport, "conn": conn})
             print("[INFO]: Accepted the connection from {}".format(conn_name))
             temp = threading.Thread(target=handle_client, args=(conn, conn_name))
             temp.start()
+            send_down("new", conn)
             
         # break the while loop when keyboard intterupt is received and server will be closed
         except OSError:
@@ -534,13 +531,12 @@ def connectToChildren(s, stpThread):
 
         sleep(0.1)
 
-    s.close()
-    s = None
-    print("[INFO]: Server Closed")
+    print("[INFO]: Stop receiving connections...")
 
 # START A THREAD FOR LISTENING TO CHILDREN (FOR FEDAVG)
 listener = threading.Thread(target=connectToChildren, args=(s,stopThreads))
 listener.start()
+childCount = 0
 
 def sendTreeDown():
     global children
@@ -556,9 +552,17 @@ def sendTreeDown():
     global restructuring
     global threads
     global stopThreads
+    global childCount
+    global confirmedChildren
+    
+    
+    print("\n\n\niterations", iteration)
     
     restructuring = True
     stopThreads = True
+    childCount = -1
+    confirmedChildren = 0
+    isRoot = False
     
     # stop listening for children
     # listener.join(0)
@@ -566,25 +570,33 @@ def sendTreeDown():
     for child in children:
         send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
         
-    # sleep(1)
+    sleep(2)
     
-    listener.join(0)
-    for t in threads:
-        t.join(0)
-        # remove thread from list
-    threads = []
+    # listener.join(0)
+    # for t in threads:
+    #     t.join(0)
+    #     # remove thread from list
+    # threads = []
         
-    # disconnect from everyone
-    for child in children:
-        child["conn"].close()
-    
+    try:
+        # disconnect from everyone
+        for child in children:
+            child["conn"].close()
+    except Exception as e:
+        print(e)
+        
     children = []
     
-    if parentConn != None:
-        parentConn.close()
+    try:
+        if parentConn != None:
+            parentConn.close()
+    except Exception as e:
+        print(e)
         
     if s != None:
         s.close()
+    
+    
     
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -604,6 +616,13 @@ def sendTreeDown():
             index = i
             break
         
+    if (index + 1) * 2 <= len(tree):
+        childCount = 2
+    elif (index + 1) * 2 - 1 <= len(tree):
+        childCount = 1
+    else:
+        childCount = 0
+        
     print("INDEX", index + 1)
     parentIndex = int((index + 1) / 2)
     print("PARENT INDEX", parentIndex)
@@ -613,10 +632,10 @@ def sendTreeDown():
     maxChildren = 2
 
     if parentIndex != 0:
-        # sleep(10)
+        sleep(3)
         parent = {"ip": tree[parentIndex-1][2].split(":")[0], "port": tree[parentIndex-1][2].split(":")[1]}
         parentConn.connect((parent["ip"], int(parent["port"])))
-        print("parent", parent)
+        print("Connecting to", parent)
         isRoot = False
     else:
         print("ROOT")
@@ -630,9 +649,8 @@ while True:
         # input("Press Enter to start the tree...\n\n")
         # print("Waiting for children")
         # wait for children to connect
-        while len(children) != maxChildren:
-            if len(tree) == 2 and len(children) == 1:
-                break
+        while len(tree) != confirmedChildren + 1:
+            print(str(confirmedChildren) + "/" + str(len(tree) - 1) + " children connected")
             sleep(1)
         
         print("SENDING START")
@@ -674,6 +692,7 @@ while True:
                 # print("Event", event)
                 if event["args"]["taskId"] == task_id:
                     tree = event["args"]["tree"]
+                    print("TREE", tree)
                     break
                 
             for event in event_filter2.get_new_entries():
@@ -703,6 +722,7 @@ while True:
             
             break
         
+        stopThreads = True
         sendTreeDown()
         
         
@@ -727,6 +747,12 @@ while True:
                             print("RECEIVED STOP")
                             finishedBlock = True
                             break
+                        elif payload == "new":
+                            print("RECEIVED NEW")
+                            send_up("received")
+                            for _ in range(localResends):
+                                send_up("received")
+                            localResends = 0
                     elif data_id == data_identifiers["data"]:
                         if payload["type"] == "model":
                             model = payload["model"]
@@ -735,15 +761,18 @@ while True:
                             # get tree
                             # send_up("received")
                             tree = payload["tree"]
+                            stopThreads = True
                             print("TREE", tree)
                             sendTreeDown()
-                except ConnectionResetError:
-                    print("Connection reset")
-                    parentConn.close()
-                    parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    parentConn.connect((parent["ip"], int(parent["port"])))
-                    print("parent", parent)
-                    
+                except ConnectionResetError as e:
+                    if not restructuring:
+                        print("Connection reset:", e)
+                        parentConn.close()
+                        parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        parentConn.connect((parent["ip"], int(parent["port"])))
+                        print("parent", parent)
+                except Exception as e:
+                    print(e)                    
             
     if finishedBlock:
         break
