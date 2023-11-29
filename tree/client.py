@@ -159,7 +159,6 @@ else:
             break
         
         sleep(1)
-        print("Waiting for event")
     
     index = 0
     for i, node in enumerate(tree):
@@ -221,6 +220,7 @@ class linearRegression(torch.nn.Module):
 
 working = True
 model = None
+children = []
 # TRAIN THE MODEL
 def work():
     global model
@@ -317,14 +317,15 @@ def fedAvg3(m1, m2, m3):
     for param1, param2, param3 in zip(m1.parameters(), m2.parameters(), m3.parameters()):
         param1.data = (param1.data + param2.data + param3.data) / 3
     
-    torch.save(m1, './avg.pth')
-    
     if not isRoot:
         buffer = io.BytesIO()
         torch.save(m1, buffer)
         # SEND UP THE TREE ONCE AVG IS DONE
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
     else:
+        torch.save(m1, './avg.pth')
+        for child in children:
+            send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
     child1model = None
     return m1
@@ -343,7 +344,6 @@ def fedAvg2(m1, m2):
     for param1, param2 in zip(m1.parameters(), m2.parameters()):
         param1.data = (param1.data + param2.data) / 2
         
-    torch.save(m1, './avg.pth')
     
     if not isRoot:
         buffer = io.BytesIO()
@@ -351,10 +351,13 @@ def fedAvg2(m1, m2):
         # SEND UP THE TREE ONCE AVG IS DONE
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
     else:
+        torch.save(m1, './avg.pth')
+        for child in children:
+            send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
     return m1
 
-children = []
+
 
 
 
@@ -421,14 +424,17 @@ def handle_client(conn, conn_name):
         except OSError:
             print("[INFO]: {} forcibly closed the connection".format(conn_name))
             return
+        sleep(0.1)
     conn.close()
 
 restructuring = False
+stopThreads = False
 
 threads = []
 
 # LISTEN FOR CONNECTIONS FROM CHILDREN AND CREATE A THREAD FOR EACH
-def connectToChildren(s, a):
+def connectToChildren(s, stpThread):
+    print("[INFO]: Waiting for connections...")
     global children
     global parentConn
     global tree
@@ -437,11 +443,13 @@ def connectToChildren(s, a):
     global index
     # global s
     global threads
+    global restructuring
     
     temp = None
     
     while True:
-        if restructuring or s == None:
+        if restructuring or s == None or stpThread:
+            print("RESTRUCTURING")
             break
         
         try:
@@ -452,21 +460,20 @@ def connectToChildren(s, a):
             print("[INFO]: Accepted the connection from {}".format(conn_name))
             temp = threading.Thread(target=handle_client, args=(conn, conn_name))
             temp.start()
-            threads.append(temp)
             
         # break the while loop when keyboard intterupt is received and server will be closed
-        except ConnectionAbortedError:
+        except OSError:
             print("\n[INFO]: Keyboard Interrupt Received")
             break
-        
-    temp.join(0)
+
+        sleep(0.1)
 
     s.close()
     s = None
     print("[INFO]: Server Closed")
 
 # START A THREAD FOR LISTENING TO CHILDREN (FOR FEDAVG)
-listener = threading.Thread(target=connectToChildren, args=(s,0))
+listener = threading.Thread(target=connectToChildren, args=(s,stopThreads))
 listener.start()
 
 def sendTreeDown():
@@ -482,8 +489,10 @@ def sendTreeDown():
     global maxChildren
     global restructuring
     global threads
+    global stopThreads
     
     restructuring = True
+    stopThreads = True
     
     # stop listening for children
     # listener.join(0)
@@ -519,7 +528,9 @@ def sendTreeDown():
     
     sleep(5)
     restructuring = False
-    listener = threading.Thread(target=connectToChildren, args=(s,0))
+    stopThreads = False
+    listener = threading.Thread(target=connectToChildren, args=(s,stopThreads))
+    listener.start()
         
     index = 0
     for i, node in enumerate(tree):
@@ -545,12 +556,13 @@ def sendTreeDown():
         print("ROOT")
         isRoot = True
 
+finishedBlock = False
 while True:
     
     # AWAIT FOR START AS ROOT, OTHERWISE ACT AS NODE AND PASS MESSAGES DOWN
     if isRoot:
         # input("Press Enter to start the tree...\n\n")
-        print("Waiting for children")
+        # print("Waiting for children")
         # wait for children to connect
         while len(children) != maxChildren:
             if len(tree) == 2 and len(children) == 1:
@@ -570,7 +582,11 @@ while True:
         
         tree = None
         event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
+        event_filter2 = contract.events.IterationComplete.createFilter(fromBlock='latest')
         contract.functions.completeIteration(task_id).transact()
+        
+        restructuring = True
+        
         
         while True:
             for event in event_filter.get_new_entries():
@@ -578,11 +594,22 @@ while True:
                 if event["args"]["taskId"] == task_id:
                     tree = event["args"]["tree"]
                     break
-            if tree != None:
+                
+            for event in event_filter2.get_new_entries():
+                print("Event", event)
+                if event["args"]["taskId"] == task_id and event["args"]["complete"]:
+                    finishedBlock = True
+                    break
+            if tree != None or finishedBlock:
                 break
             
             sleep(1)
             print("Waiting for event")
+            
+        if finishedBlock:
+            print("FEDERATED LEARNING COMPLETE")
+            send_broadcast_down("stop")
+            break
         
         sendTreeDown()
         
@@ -594,7 +621,6 @@ while True:
         while not isRoot:
             
             if not restructuring:
-                print("TEST")
                 try:
                     data_id, payload = receive_data(parentConn)
                     # get type of data
@@ -604,10 +630,14 @@ while True:
                             print("RECEIVED START")
                             start_epoch()
                             send_broadcast_down("start")
+                        elif payload == "stop":
+                            print("RECEIVED STOP")
+                            finishedBlock = True
+                            break
                     elif data_id == data_identifiers["data"]:
                         if payload["type"] == "model":
                             model = payload["model"]
-                            print("MODEL", model)
+                            print("RECEIVED GLOBAL MODEL")
                         elif payload["type"] == "tree":
                             # get tree
                             # send_up("received")
@@ -618,6 +648,5 @@ while True:
                     print("Connection reset")
                     break
             
-            
-                
-# threading.Thread(target=iterLoop).start()
+    if finishedBlock:
+        break

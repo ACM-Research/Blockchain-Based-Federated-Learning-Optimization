@@ -36,7 +36,7 @@ contract MainContract {
 
     event TaskInitialized(uint256 taskId, uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount);
     event UserAdded(uint256 taskId, address user, string ip);
-    event IterationComplete(uint256 taskId, uint256 iteration, address rootAggregator);
+    event IterationComplete(uint256 taskId, uint256 iteration, address rootAggregator, bool complete);
     event TreeStructureGenerated(uint256 taskId, address rootAggregator, TreeNode[] tree);
 
     function initTask(uint256 requiredUsers, uint256 totalIterations, uint256 fundingAmount) public {
@@ -62,6 +62,14 @@ contract MainContract {
         task.users.push(User({ userAddress: userAddress, role: Role.Worker, ip: ip}));
         if (task.users.length == task.requiredUsers) {
             task.isFull = true;
+            uint256 numUsers = task.users.length;
+            for (uint256 i = 0; i < numUsers; i++) {
+                task.tree.push(TreeNode({
+                    userAddress: task.users[i].userAddress,
+                    role: Role.Worker,
+                    ip: task.users[i].ip
+                }));
+            }
             startIteration(taskId);
         }
 
@@ -75,26 +83,28 @@ contract MainContract {
         task.currentIteration++;
     }
 
-    // function completeIteration(uint256 taskId, address[] memory contributors, uint256[] memory values) public {
-    //     Task storage task = tasks[taskId];
-    //     require(task.currentIteration <= task.totalIterations, "All iterations completed");
-    //     require(msg.sender == getRootAggregatorAddress(taskId), "Only Root Aggregator can complete the iteration");
+    /*
+    function completeIteration(uint256 taskId, address[] memory contributors, uint256[] memory values) public {
+        Task storage task = tasks[taskId];
+        require(task.currentIteration <= task.totalIterations, "All iterations completed");
+        require(msg.sender == getRootAggregatorAddress(taskId), "Only Root Aggregator can complete the iteration");
 
-    //     uint256 totalContributionForIteration = 1000;
-    //     for (uint256 i = 0; i < contributors.length; i++) {
-    //         uint256 contributionPercentage = (values[i] * 100) / totalContributionForIteration;
-    //         task.contributions[contributors[i]] += contributionPercentage;
-    //     }
+        uint256 totalContributionForIteration = 1000;
+        for (uint256 i = 0; i < contributors.length; i++) {
+            uint256 contributionPercentage = (values[i] * 100) / totalContributionForIteration;
+            task.contributions[contributors[i]] += contributionPercentage;
+        }
 
-    //     if (task.currentIteration < task.totalIterations) {
-    //         startIteration(taskId);
-    //     } else {
-    //         distributeFunds(taskId);
-    //         task.status = TaskStatus.Completed;
-    //     }
+        if (task.currentIteration < task.totalIterations) {
+            startIteration(taskId);
+        } else {
+            distributeFunds(taskId);
+            task.status = TaskStatus.Completed;
+        }
 
-    //     emit IterationComplete(taskId, task.currentIteration, task.tree[0].userAddress);
-    // }
+        emit IterationComplete(taskId, task.currentIteration, task.tree[0].userAddress);
+    }
+    */
 
     function completeIteration(uint256 taskId) public {
         Task storage task = tasks[taskId];
@@ -108,7 +118,7 @@ contract MainContract {
             task.status = TaskStatus.Completed;
         }
 
-        emit IterationComplete(taskId, task.currentIteration, task.tree[0].userAddress);
+        emit IterationComplete(taskId, task.currentIteration, task.tree[0].userAddress, task.status == TaskStatus.Completed);
     }
 
     function distributeFunds(uint256 taskId) internal {
@@ -127,19 +137,11 @@ contract MainContract {
 
     function generateTreeStructure(uint256 taskId) internal {
         Task storage task = tasks[taskId];
-        uint256 numUsers = task.users.length;
-
-        for (uint256 i = 0; i < numUsers; i++) {
-            task.tree.push(TreeNode({
-                userAddress: task.users[i].userAddress,
-                role: Role.Worker,
-                ip: task.users[i].ip
-            }));
-        }
+        
 
         for(uint256 i = task.tree.length -1 ; i > 0; i--) {
 
-            uint256 swapIndex = entropy % (task.tree.length - i);
+            uint256 swapIndex = block.timestamp % (task.tree.length - i);
 
             TreeNode memory temp = TreeNode({
                 userAddress: task.tree[i].userAddress,
