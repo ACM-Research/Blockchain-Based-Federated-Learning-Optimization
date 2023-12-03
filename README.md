@@ -17,7 +17,7 @@
 ```python tree/client.py```
 7. badda bing badda boom u have a trained model somewhere
 
-![Research  Poster](poster.jpg)
+![Research  Poster](poster.png)
  
 ## Things that still need to be done:
 1. Restructure tree (not too hard) just need to create a restructure msg handler from old root
