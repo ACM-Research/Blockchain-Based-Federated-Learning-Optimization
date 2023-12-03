@@ -15,7 +15,6 @@
 ```python start_task.py```
 6. run multiple tree/client.py scripts to create new clients for federated learning
 ```python tree/client.py```
-7. badda bing badda boom u have a trained model somewhere
 
 ![Research  Poster](poster.png)
  
