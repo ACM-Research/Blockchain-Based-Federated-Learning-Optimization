@@ -24,7 +24,7 @@ import io
 import torch
 from torch.autograd import Variable
 
-from brownie import *
+
 from web3 import Web3
 
 import pickle
@@ -32,6 +32,12 @@ import struct
 
 import time
 
+import asyncio
+from websockets.sync.client import connect
+
+from brownie import *
+
+websocket = connect("ws://localhost:8765")
 
 # open a csv file to append logs to (for testing)
 # model_accuracy = open("./data/model_accuracy.csv", "a")
@@ -177,6 +183,7 @@ if parentIndex != 0:
 else:
     print("ROOT")
     isRoot = True
+    websocket.send(json.dumps({"type": "tree", "tree": tree}))
     
 
 # LINEAR REGRESSION MODEL
@@ -256,6 +263,7 @@ def find_accuracy():
             total += 1
             
     print("Accuracy: ", round(correct/total * 100, 3))
+    websocket.send(json.dumps({"type": "accuracy", "accuracy": round(correct/total * 100, 3)}))
     model_accuracy = open("./data/model_accuracy.csv", "a")
     model_accuracy.write(str(iteration) + ", " + str(correct/total * 100) + "\n")
     model_accuracy.close()
@@ -332,6 +340,7 @@ def work():
     
     buffer = io.BytesIO()
     torch.save(model, buffer)
+    websocket.send(json.dumps({"type": "status", "status": "trained", "port": port}))
     
     if parent != {} and len(children) != maxChildren:
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
@@ -346,6 +355,7 @@ def fedAvg3(m1, m2, m3):
     global child1model
     global finished
     global model
+    websocket.send(json.dumps({"type": "status", "status": "averaging", "port": port}))
     
     while working:
         sleep(1)
@@ -372,12 +382,14 @@ def fedAvg3(m1, m2, m3):
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
     child1model = None
+    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
     return m1
 
 # FEDAVG WITH 1 CHILD
 def fedAvg2(m1, m2):
     global finished
     global model
+    websocket.send(json.dumps({"type": "status", "status": "averaging", "port": port}))
     
     while working:
         sleep(1)
@@ -402,6 +414,8 @@ def fedAvg2(m1, m2):
         for child in children:
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
+        
+    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
     return m1
 
 
@@ -533,6 +547,9 @@ def connectToChildren(s, stpThread):
         except OSError:
             print("\n[INFO]: Keyboard Interrupt Received")
             break
+        except Exception as e:
+            print(e)
+            # return
 
         sleep(0.1)
 
@@ -662,8 +679,10 @@ while True:
         
         # log the start time
         iteration += 1
+        websocket.send(json.dumps({"type": "iteration", "iteration": iteration}))
         speed = open("./data/speed.csv", "a")
         speed.write(str(iteration) + ", start, " + str(time.time()) + "\n")
+        start_time = time.time()
         speed.close()
         
         start_epoch()
@@ -677,6 +696,7 @@ while True:
         print("ITERATION COMPLETE")
         speed = open("./data/speed.csv", "a")
         speed.write(str(iteration) + ", end, " + str(time.time()) + "\n")
+        websocket.send(json.dumps({"type": "speed", "speed": time.time() - start_time}))
         speed.close()
         
         tree = None
@@ -688,6 +708,7 @@ while True:
         gas_used = receipt['gasUsed']
         gas_costs = open("./data/gas_costs.csv", "a")
         gas_costs.write(str(iteration) + ", " + str(port) + ", completeIteration, " + str(gas_used) + "\n")
+        websocket.send(json.dumps({"type": "gas", "gas": gas_used}))
         gas_costs.close()
         restructuring = True
         
@@ -697,6 +718,7 @@ while True:
                 # print("Event", event)
                 if event["args"]["taskId"] == task_id:
                     tree = event["args"]["tree"]
+                    websocket.send(json.dumps({"type": "tree", "tree": tree}))
                     print("TREE", tree)
                     break
                 
@@ -745,6 +767,7 @@ while True:
                     if data_id == data_identifiers["info"]:
                         if payload == "start":
                             print("RECEIVED START")
+                            websocket.send(json.dumps({"type": "status", "status": "training", "port": port}))
                             iteration += 1
                             start_epoch()
                             send_broadcast_down("start")

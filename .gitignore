@@ -3,3 +3,4 @@ smartcontract/node_modules
 smartcontract/artifacts
 smartcontract/cache
 .venv
+node_modules

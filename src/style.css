@@ -1,0 +1,11 @@
+html {
+    scroll-behavior: smooth;
+    width: 100vw !important;
+    height: 100vh;
+    font-family: 'Roboto', sans-serif;
+}
+
+p,
+h5 {
+    margin: 0rem !important;
+}
