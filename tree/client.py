@@ -72,18 +72,23 @@ def receive_data(conn):
     @args[in]:
         conn: socket object for conection from which data is supposed to be received
     """
-    # receive first 4 bytes of data as data size of payload
-    data_size = struct.unpack(">I", conn.recv(4))[0]
-    # receive next 4 bytes of data as data identifier
-    data_id = struct.unpack(">I", conn.recv(4))[0]
-    # receive payload till received payload size is equal to data_size received
-    received_payload = b""
-    reamining_payload_size = data_size
-    while reamining_payload_size != 0:
-        received_payload += conn.recv(reamining_payload_size)
-        reamining_payload_size = data_size - len(received_payload)
-    payload = pickle.loads(received_payload)
-    return (data_id, payload)
+    try:
+        # receive first 4 bytes of data as data size of payload
+        data_size = struct.unpack(">I", conn.recv(4))[0]
+        # receive next 4 bytes of data as data identifier
+        data_id = struct.unpack(">I", conn.recv(4))[0]
+        # receive payload till received payload size is equal to data_size received
+        received_payload = b""
+        reamining_payload_size = data_size
+        while reamining_payload_size != 0:
+            received_payload += conn.recv(reamining_payload_size)
+            reamining_payload_size = data_size - len(received_payload)
+        payload = pickle.loads(received_payload)
+        return (data_id, payload)
+    except Exception as e:
+        print(e)
+        conn.close()
+        return (None, None)
 
 server = "localhost:3000"
 contract_address = "0x3194cBDC3dbcd3E11a07892e7bA5c3394048Cc87"
@@ -148,7 +153,6 @@ while True:
             break
     if tree != None:
         break
-    
     sleep(1)
 
 index = 0
@@ -579,12 +583,12 @@ def sendTreeDown():
     #     # remove thread from list
     # threads = []
         
-    try:
-        # disconnect from everyone
-        for child in children:
-            child["conn"].close()
-    except Exception as e:
-        print(e)
+    # try:
+    #     # disconnect from everyone
+    #     for child in children:
+    #         child["conn"].close()
+    # except Exception as e:
+    #     print(e)
         
     children = []
     

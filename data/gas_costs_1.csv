@@ -1,8 +1,8 @@
-0, initTask, 128742, 4, 20
-3056, addUser, 93336
-3951, addUser, 78336
-3437, addUser, 78336
-3354, addUser, 414595
+0, 0, initTask, 128742, 4, 20
+0, 3056, addUser, 93336
+0, 3951, addUser, 78336
+0, 3437, addUser, 78336
+0, 3354, addUser, 414595
 1, 3437, completeIteration, 142948
 2, 3056, completeIteration, 142948
 3, 3437, completeIteration, 142948
