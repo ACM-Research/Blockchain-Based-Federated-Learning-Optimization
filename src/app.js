@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { render } from "react-dom";
 import "./style.css";
-import { CircularProgress } from "@mui/material";
+import { CircularProgress, CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 
 var ws = new WebSocket("ws://localhost:8765");
 
@@ -10,6 +10,27 @@ var clientW = 400;
 var clientH = 200;
 
 var true_elements = {};
+
+// dark theme
+const theme = createTheme({
+	palette: {
+		mode: "dark",
+		primary: {
+			main: "#90caf9",
+		},
+		secondary: {
+			main: "#f48fb1",
+		},
+		background: {
+			default: "#121212",
+			paper: "#424242",
+		},
+		text: {
+			primary: "#ffffff",
+			secondary: "#ffffff",
+		},
+	}
+});
 
 const App = () => {
 	const [elements, setElements] = useState({});
@@ -103,8 +124,8 @@ const App = () => {
 			if (parentIndex >= 0) {
 				const parent = tree[parentIndex];
 				const parentPort = parent[2].split(":")[1];
-				const parentX = true_elements[parentPort].x;
-				const parentY = true_elements[parentPort].y;
+				const parentX = true_elements[parentPort].newX;
+				const parentY = true_elements[parentPort].newY;
 
 				// draw line to parent
 				true_elements[port].setNextElement(
@@ -113,7 +134,6 @@ const App = () => {
 				);
 			}
 		}
-
 
 		// console.log(newElements);
 
@@ -157,10 +177,13 @@ const App = () => {
 	}, []);
 
 	return (
-		<div className="flex-page">
-			<Canvas elements={elements} />
-			<Header iterations={iteration} accuracy={accuracy} gas={gas} />
-		</div>
+		<ThemeProvider theme={theme}>
+			<CssBaseline />
+			<div className="flex-page">
+				<Canvas elements={elements} />
+				<Header iterations={iteration} accuracy={accuracy} gas={gas} />
+			</div>
+		</ThemeProvider>
 	);
 };
 
@@ -300,7 +323,7 @@ class Client {
 		var dist = Math.sqrt(xDist * xDist + yDist * yDist);
 		var xSpeed = xDist / dist;
 		var ySpeed = yDist / dist;
-		var speed = 15;
+		var speed = 20;
 		// move towards new position
 		if (Math.abs(this.x - this.newX) < 10) this.x = this.newX;
 		else this.x += xSpeed * speed;
