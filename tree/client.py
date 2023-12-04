@@ -92,7 +92,7 @@ def receive_data(conn):
         payload = pickle.loads(received_payload)
         return (data_id, payload)
     except Exception as e:
-        print(e)
+        # print(e)
         conn.close()
         return (None, None)
 
@@ -120,7 +120,7 @@ if len(sys.argv) > 1:
 # IMPORTANT CONNECTIONS
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-port = random.randint(3001, 4000)
+port = random.randint(3001, 4999)
 s.bind(("localhost", port))
 print("IP is ", s.getsockname()[0], "PORT is ", s.getsockname()[1])
 s.listen(2)
@@ -143,7 +143,8 @@ contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
 event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
 
-tx = contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact()
+tx = contract.functions.addUser(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1])).transact({'from': w3.eth.accounts[0], 'gas': 1000000})
+# tx = contract.functions.addUser.sendTransaction(task_id, user_address, str(s.getsockname()[0]) + ":" + str(s.getsockname()[1]), {'from': accounts[0], 'gas': 1000000})
 # get gas used
 receipt = w3.eth.getTransactionReceipt(tx)
 gas_used = receipt['gasUsed']
@@ -340,9 +341,12 @@ def work():
     
     buffer = io.BytesIO()
     torch.save(model, buffer)
+    sleep(3)
     websocket.send(json.dumps({"type": "status", "status": "trained", "port": port}))
     
-    if parent != {} and len(children) != maxChildren:
+    if parent != {} and len(children) == 0:
+        print("LEAF SEND UP")
+        print(parent, parentConn)
         send_data(parentConn, buffer.getvalue(), data_identifiers["data"])
 
     print("DONE TRAINING")
@@ -368,6 +372,9 @@ def fedAvg3(m1, m2, m3):
     for param1, param2, param3 in zip(m1.parameters(), m2.parameters(), m3.parameters()):
         param1.data = (param1.data + param2.data + param3.data) / 3
     
+    sleep(3)
+    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
+    
     if not isRoot:
         buffer = io.BytesIO()
         torch.save(m1, buffer)
@@ -382,7 +389,7 @@ def fedAvg3(m1, m2, m3):
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
     child1model = None
-    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
+    
     return m1
 
 # FEDAVG WITH 1 CHILD
@@ -401,6 +408,8 @@ def fedAvg2(m1, m2):
     for param1, param2 in zip(m1.parameters(), m2.parameters()):
         param1.data = (param1.data + param2.data) / 2
         
+    sleep(3)
+    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
     
     if not isRoot:
         buffer = io.BytesIO()
@@ -415,7 +424,7 @@ def fedAvg2(m1, m2):
             send_data(child["conn"], {"type": "model", "model": m1}, data_identifiers["data"])
         finished = True
         
-    websocket.send(json.dumps({"type": "status", "status": "averaged", "port": port}))
+    
     return m1
 
 
@@ -440,7 +449,7 @@ def send_up(payload):
     except Exception as e:        
         localResends += 1
         localResends = min(localResends, 5)
-        print(e)
+        # print(e)
     
 def send_down(payload, conn):
     send_data(conn, payload, data_identifiers["info"])
@@ -454,11 +463,14 @@ def handle_client(conn, conn_name):
         conn: socket object of connection
         con_name: name of the connection
     """
+    
+    print("[INFO]: Waiting for data from {}".format(conn_name))
+    
     global child1model
     global confirmedChildren
     while True:
-        if restructuring or stopThreads:
-            break
+        # if restructuring or stopThreads:
+        #     print("RESTRUCTURING")
         try:
             
             
@@ -468,7 +480,7 @@ def handle_client(conn, conn_name):
                 print("---Recieved image too ---")
             # otherwise send the data to do something
             elif data_id == data_identifiers["data"]:
-                while waiting:
+                while working:
                     sleep(0.1)
                 print("---Recieved data too ---")
                 # payload bytes to model
@@ -498,12 +510,11 @@ def handle_client(conn, conn_name):
                     confirmedChildren += 1
                     if not isRoot:
                         send_up("received")
-                else:
-                    print(payload)
         except Exception as e:
+            print("ERROR1")
             print(e)
             # check if connection is closed
-            return
+            # return
             # return
         sleep(0.1)
     conn.close()
@@ -548,7 +559,8 @@ def connectToChildren(s, stpThread):
             print("\n[INFO]: Keyboard Interrupt Received")
             break
         except Exception as e:
-            print(e)
+            print("ERROR2")
+            # print(e)
             # return
 
         sleep(0.1)
@@ -589,9 +601,11 @@ def sendTreeDown():
     # stop listening for children
     # listener.join(0)
     
-    for child in children:
-        send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
-        
+    try:
+        for child in children:
+            send_data(child["conn"], {"type": "tree", "tree": tree}, data_identifiers["data"])
+    except Exception as e:
+        print(e) 
     sleep(3)
     
     # listener.join(0)
@@ -702,7 +716,9 @@ while True:
         tree = None
         event_filter = contract.events.TreeStructureGenerated.createFilter(fromBlock='latest')
         event_filter2 = contract.events.IterationComplete.createFilter(fromBlock='latest')
-        tx = contract.functions.completeIteration(task_id).transact()
+        tx = contract.functions.completeIteration(task_id).transact({'from': w3.eth.accounts[0], 'gas': 1000000})
+        # tx = contract.functions.completeIteration.sendTransaction(task_id, {'from': accounts[0], 'gas': 1000000})
+                                                                            
         # get gas used
         receipt = w3.eth.getTransactionReceipt(tx)
         gas_used = receipt['gasUsed']
@@ -769,8 +785,10 @@ while True:
                             print("RECEIVED START")
                             websocket.send(json.dumps({"type": "status", "status": "training", "port": port}))
                             iteration += 1
-                            start_epoch()
                             send_broadcast_down("start")
+                            sleep(3)
+                            start_epoch()
+                            
                         elif payload == "stop":
                             print("RECEIVED STOP")
                             finishedBlock = True
@@ -789,18 +807,20 @@ while True:
                             # get tree
                             # send_up("received")
                             tree = payload["tree"]
-                            stopThreads = True
+                            # stopThreads = True
                             print("TREE", tree)
                             sendTreeDown()
                 except ConnectionResetError as e:
                     if not restructuring:
                         print("Connection reset:", e)
-                        parentConn.close()
+                        # parentConn.close()
                         parentConn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         parentConn.connect((parent["ip"], int(parent["port"])))
-                        print("parent", parent)
+                        # print("parent", parent)
                 except Exception as e:
-                    print(e)                    
+                    print("ERROR3")
+                    # print(e)                    
+                    break
             
     if finishedBlock:
         break

@@ -20,6 +20,7 @@ def test():
 
 
 def main():
+    # add money to contract 
     MainContract.deploy({'from': accounts[0]})
     input("Press 'Enter' to stop the contract...")
     

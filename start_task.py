@@ -3,6 +3,7 @@
 import threading
 from web3 import Web3
 import os
+import sys
 import json
 import time
 from flask import Flask, request, jsonify, send_from_directory
@@ -14,6 +15,19 @@ from websockets.server import serve
 contract_address = "0x3194cBDC3dbcd3E11a07892e7bA5c3394048Cc87"
 contract_abi = None
 contract = None
+
+# get arguments from command line for how many children to spawn
+NUM_USERS = 4
+TOTAL_ITERATIONS = 20
+print(sys.argv)
+if len(sys.argv) > 1:
+    NUM_USERS = int(sys.argv[1])
+if len(sys.argv) > 2:
+    TOTAL_ITERATIONS = int(sys.argv[2])
+
+    
+
+
 
 # create copy of MainContract.json in this directory from ./brownie/build/contracts/MainContract.json 
 # if it doesn't exist  already
@@ -36,8 +50,7 @@ w3.eth.defaultAccount = w3.eth.accounts[0]
 # Create a contract instance
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-NUM_USERS = 4
-TOTAL_ITERATIONS = 20
+
 
 result = contract.functions.initTask(NUM_USERS, TOTAL_ITERATIONS, 100).transact()
 
@@ -85,12 +98,20 @@ tree = None
 
 async def echo(websocket):
     global frontend
+    global tree
     async for message in websocket:
+        
+        # if message is not json return
+        if not message.startswith("{"):
+            continue
+        
         data = json.loads(message)
         print(data)
         type = data["type"]
         if type == "front":
             frontend = websocket
+            if tree != None:
+                await frontend.send(json.dumps({"type": "tree", "tree": tree}))
         elif type == "tree":
             tree = data["tree"]
             if frontend != None:

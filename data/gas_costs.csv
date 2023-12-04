@@ -102,3 +102,586 @@
 3513, addUser, 93336
 3579, addUser, 78336
 3192, addUser, 78336
+3802, addUser, 22136
+3889, addUser, 22136
+3029, addUser, 22136
+3227, addUser, 22136
+3488, addUser, 22136
+3963, addUser, 22136
+3955, addUser, 22136
+3644, addUser, 22136
+3667, addUser, 93336
+3315, addUser, 78336
+3821, addUser, 78336
+3219, addUser, 93336
+3462, addUser, 78336
+3662, addUser, 78336
+3674, addUser, 418251
+1, 3662, completeIteration, 138748
+2, 3462, completeIteration, 138204
+3, 3662, completeIteration, 146604
+4, 3674, completeIteration, 146604
+5, 3219, completeIteration, 146604
+3142, addUser, 93336
+3463, addUser, 78336
+3971, addUser, 78336
+3522, addUser, 418251
+1, 3971, completeIteration, 138204
+2, 3142, completeIteration, 138204
+3, 3971, completeIteration, 138204
+4, 3142, completeIteration, 138748
+5, 3463, completeIteration, 138748
+6, 3971, completeIteration, 146604
+7, 3142, completeIteration, 146604
+8, 3522, completeIteration, 146604
+9, 3463, completeIteration, 146604
+10, 3971, completeIteration, 146604
+11, 3142, completeIteration, 142948
+12, 3971, completeIteration, 146604
+13, 3522, completeIteration, 146604
+14, 3463, completeIteration, 138204
+15, 3522, completeIteration, 138204
+16, 3463, completeIteration, 138204
+17, 3522, completeIteration, 138204
+3155, addUser, 93336
+3870, addUser, 78336
+3802, addUser, 78336
+3158, addUser, 418251
+1, 3158, completeIteration, 142948
+2, 3155, completeIteration, 142948
+3, 3158, completeIteration, 142948
+4, 3155, completeIteration, 146604
+5, 3802, completeIteration, 146604
+6, 3870, completeIteration, 142948
+7, 3802, completeIteration, 146604
+8, 3155, completeIteration, 146604
+9, 3158, completeIteration, 146604
+10, 3870, completeIteration, 138204
+11, 3158, completeIteration, 138204
+12, 3870, completeIteration, 138204
+3207, addUser, 93336
+3111, addUser, 78336
+3845, addUser, 78336
+3936, addUser, 93336
+3409, addUser, 78336
+3443, addUser, 78336
+3937, addUser, 414595
+1, 3443, completeIteration, 146604
+2, 3937, completeIteration, 138748
+3, 3409, completeIteration, 138748
+4, 3443, completeIteration, 138748
+5, 3937, completeIteration, 138748
+6, 3409, completeIteration, 138748
+7, 3443, completeIteration, 146604
+8, 3937, completeIteration, 146604
+9, 3936, completeIteration, 146604
+3181, addUser, 93336
+3546, addUser, 78336
+3738, addUser, 78336
+3073, addUser, 93336
+3380, addUser, 78336
+3822, addUser, 78336
+3340, addUser, 418251
+1, 3822, completeIteration, 146604
+2, 3340, completeIteration, 142948
+3, 3822, completeIteration, 146604
+4, 3073, completeIteration, 142948
+3595, addUser, 93336
+3371, addUser, 78336
+3899, addUser, 78336
+3144, addUser, 93336
+3942, addUser, 78336
+3158, addUser, 78336
+3250, addUser, 93336
+3902, addUser, 78336
+3725, addUser, 78336
+3881, addUser, 414595
+1, 3881, completeIteration, 138748
+2, 3902, completeIteration, 138748
+3, 3250, completeIteration, 138748
+4, 3881, completeIteration, 138748
+5, 3902, completeIteration, 146604
+6, 3250, completeIteration, 146604
+7, 3725, completeIteration, 146604
+3261, addUser, 93336
+3889, addUser, 78336
+3318, addUser, 78336
+3927, addUser, 418251
+1, 3318, completeIteration, 138748
+2, 3889, completeIteration, 138204
+3752, addUser, 93336
+3711, addUser, 78336
+3615, addUser, 78336
+3925, addUser, 418251
+1, 3615, completeIteration, 142948
+2, 3752, completeIteration, 142948
+3, 3615, completeIteration, 142948
+4, 3752, completeIteration, 146604
+5, 3711, completeIteration, 146604
+6, 3925, completeIteration, 146604
+3845, addUser, 93336
+3410, addUser, 78336
+3078, addUser, 78336
+3669, addUser, 93336
+3860, addUser, 78336
+3050, addUser, 78336
+3897, addUser, 93336
+3343, addUser, 78336
+3088, addUser, 78336
+3919, addUser, 418251
+1, 3088, completeIteration, 138204
+2, 3897, completeIteration, 138204
+3, 3088, completeIteration, 138204
+4, 3897, completeIteration, 138204
+5, 3088, completeIteration, 138204
+6, 3897, completeIteration, 138204
+7, 3088, completeIteration, 138204
+8, 3897, completeIteration, 138748
+9, 3343, completeIteration, 138204
+10, 3897, completeIteration, 138748
+11, 3088, completeIteration, 138748
+12, 3343, completeIteration, 138748
+13, 3897, completeIteration, 146604
+14, 3088, completeIteration, 146604
+15, 3919, completeIteration, 146604
+3350, addUser, 93336
+3375, addUser, 78336
+3379, addUser, 78336
+3192, addUser, 418251
+1, 3375, completeIteration, 146604
+3207, addUser, 93336
+3693, addUser, 78336
+3854, addUser, 78336
+3111, addUser, 418251
+1, 3693, completeIteration, 146604
+2, 3111, completeIteration, 146604
+3, 3854, completeIteration, 146604
+4, 3207, completeIteration, 138748
+5, 3693, completeIteration, 146604
+6, 3854, completeIteration, 146604
+7, 3111, completeIteration, 146604
+8, 3207, completeIteration, 146604
+9, 3693, completeIteration, 146604
+3458, addUser, 93336
+3301, addUser, 78336
+3728, addUser, 78336
+3206, addUser, 93336
+3647, addUser, 78336
+3176, addUser, 78336
+3288, addUser, 414595
+1, 3288, completeIteration, 146604
+2, 3647, completeIteration, 138748
+3, 3176, completeIteration, 138748
+4, 3288, completeIteration, 138748
+5, 3647, completeIteration, 146604
+6, 3176, completeIteration, 146604
+7, 3206, completeIteration, 138748
+3970, addUser, 93336
+3192, addUser, 78336
+3706, addUser, 78336
+3822, addUser, 93336
+3815, addUser, 78336
+3265, addUser, 78336
+3555, addUser, 93336
+3885, addUser, 78336
+3585, addUser, 78336
+3631, addUser, 93336
+3365, addUser, 78336
+3161, addUser, 78336
+3124, addUser, 414595
+1, 3161, completeIteration, 138204
+2, 3631, completeIteration, 138204
+3, 3161, completeIteration, 138204
+4, 3631, completeIteration, 138204
+5, 3161, completeIteration, 138204
+6, 3631, completeIteration, 138204
+3623, addUser, 93336
+3277, addUser, 78336
+3598, addUser, 78336
+3617, addUser, 414595
+1, 3598, completeIteration, 146604
+2, 3617, completeIteration, 146604
+3, 3623, completeIteration, 138204
+4, 3617, completeIteration, 146604
+5, 3598, completeIteration, 146604
+6, 3277, completeIteration, 146604
+7, 3617, completeIteration, 138748
+8, 3598, completeIteration, 146604
+9, 3277, completeIteration, 146604
+3553, addUser, 93336
+3278, addUser, 78336
+3429, addUser, 78336
+3371, addUser, 414595
+1, 3371, completeIteration, 146604
+2, 3278, completeIteration, 146604
+3, 3429, completeIteration, 146604
+4, 3371, completeIteration, 138204
+5, 3429, completeIteration, 146604
+6, 3278, completeIteration, 142948
+7, 3429, completeIteration, 138204
+8, 3278, completeIteration, 146604
+9, 3371, completeIteration, 142948
+10, 3278, completeIteration, 146604
+11, 3553, completeIteration, 138748
+3942, addUser, 93336
+3648, addUser, 78336
+3155, addUser, 78336
+3331, addUser, 414595
+1, 3155, completeIteration, 138204
+2, 3942, completeIteration, 146604
+3, 3331, completeIteration, 146604
+4, 3648, completeIteration, 146604
+3874, addUser, 93336
+3439, addUser, 78336
+3532, addUser, 78336
+3818, addUser, 414595
+1, 3818, completeIteration, 142948
+2, 3874, completeIteration, 146604
+3, 3439, completeIteration, 138748
+3452, addUser, 93336
+3029, addUser, 78336
+3660, addUser, 78336
+3401, addUser, 414595
+1, 3660, completeIteration, 138204
+2, 3452, completeIteration, 138748
+3, 3401, completeIteration, 146604
+4, 3660, completeIteration, 142948
+5, 3401, completeIteration, 138204
+6, 3660, completeIteration, 146604
+7, 3452, completeIteration, 142948
+8, 3660, completeIteration, 138204
+9, 3452, completeIteration, 146604
+10, 3401, completeIteration, 142948
+11, 3452, completeIteration, 138204
+12, 3401, completeIteration, 146604
+13, 3660, completeIteration, 142948
+14, 3401, completeIteration, 138204
+15, 3660, completeIteration, 146604
+16, 3452, completeIteration, 142948
+17, 3660, completeIteration, 138204
+18, 3452, completeIteration, 138748
+19, 3401, completeIteration, 142948
+20, 3452, completeIteration, 37790
+
+
+
+3872, addUser, 93336
+3205, addUser, 78336
+3934, addUser, 78336
+3265, addUser, 414595
+1, 3265, completeIteration, 138204
+2, 3872, completeIteration, 142948
+3, 3265, completeIteration, 138204
+4, 3872, completeIteration, 146604
+3807, addUser, 93336
+3111, addUser, 78336
+3774, addUser, 78336
+3889, addUser, 418251
+1, 3889, completeIteration, 146604
+2, 3774, completeIteration, 138748
+3, 3111, completeIteration, 138204
+3497, addUser, 93336
+3545, addUser, 78336
+3407, addUser, 78336
+3256, addUser, 418251
+1, 3256, completeIteration, 142948
+2, 3497, completeIteration, 146604
+3, 3545, completeIteration, 138748
+3637, addUser, 93336
+3039, addUser, 78336
+3670, addUser, 78336
+3592, addUser, 78336
+3818, addUser, 78336
+3167, addUser, 573366
+3591, addUser, 93336
+3957, addUser, 78336
+3644, addUser, 78336
+3599, addUser, 78336
+3048, addUser, 78336
+3024, addUser, 573366
+3692, addUser, 93336
+3308, addUser, 78336
+3402, addUser, 78336
+3618, addUser, 78336
+3963, addUser, 78336
+3917, addUser, 569710
+3929, addUser, 93336
+3530, addUser, 78336
+3578, addUser, 78336
+3915, addUser, 78336
+3919, addUser, 78336
+3763, addUser, 573366
+3772, addUser, 93336
+3784, addUser, 78336
+3771, addUser, 78336
+3780, addUser, 78336
+3368, addUser, 78336
+3909, addUser, 573366
+3775, addUser, 93336
+3502, addUser, 78336
+3066, addUser, 78336
+3058, addUser, 78336
+3719, addUser, 78336
+3037, addUser, 569710
+3744, addUser, 93336
+3572, addUser, 78336
+3043, addUser, 78336
+3614, addUser, 78336
+3518, addUser, 78336
+3453, addUser, 569710
+3850, addUser, 93336
+3078, addUser, 78336
+3966, addUser, 78336
+3904, addUser, 78336
+3101, addUser, 78336
+3466, addUser, 569710
+3643, addUser, 93336
+3712, addUser, 78336
+3426, addUser, 78336
+3319, addUser, 78336
+3506, addUser, 78336
+3652, addUser, 573366
+3017, addUser, 93336
+3203, addUser, 78336
+3925, addUser, 78336
+3571, addUser, 78336
+3241, addUser, 78336
+3669, addUser, 566054
+3037, addUser, 93336
+3100, addUser, 78336
+3791, addUser, 78336
+3179, addUser, 78336
+3963, addUser, 78336
+3540, addUser, 573366
+1, 3179, completeIteration, 209509
+2, 3963, completeIteration, 209509
+3, 3540, completeIteration, 201109
+4, 3179, completeIteration, 197997
+5, 3100, completeIteration, 205309
+6, 3963, completeIteration, 205309
+7, 3100, completeIteration, 201653
+8, 3037, completeIteration, 205853
+9, 3100, completeIteration, 205853
+10, 3791, completeIteration, 205853
+11, 3179, completeIteration, 209509
+12, 3963, completeIteration, 201653
+13, 3037, completeIteration, 197997
+14, 3179, completeIteration, 205309
+15, 3791, completeIteration, 209509
+16, 3179, completeIteration, 201653
+17, 3540, completeIteration, 205309
+18, 3179, completeIteration, 201109
+19, 3037, completeIteration, 205853
+20, 3963, completeIteration, 37790
+
+
+
+3974, addUser, 93336
+3685, addUser, 78336
+3470, addUser, 78336
+3045, addUser, 78336
+3780, addUser, 78336
+3626, addUser, 573366
+1, 3045, completeIteration, 205309
+2, 3974, completeIteration, 209509
+3, 3045, completeIteration, 209509
+4, 3974, completeIteration, 201109
+5, 3685, completeIteration, 201109
+6, 3780, completeIteration, 205853
+7, 3045, completeIteration, 209509
+8, 3780, completeIteration, 209509
+9, 3974, completeIteration, 201109
+10, 3685, completeIteration, 197997
+11, 3045, completeIteration, 201653
+12, 3780, completeIteration, 209509
+13, 3045, completeIteration, 201653
+14, 3974, completeIteration, 205309
+15, 3045, completeIteration, 209509
+3261, addUser, 93336
+3496, addUser, 78336
+3854, addUser, 78336
+3036, addUser, 78336
+3491, addUser, 78336
+3413, addUser, 78336
+3714, addUser, 647269
+1, 3413, completeIteration, 236762
+2, 3854, completeIteration, 228362
+3, 3413, completeIteration, 232562
+4, 3261, completeIteration, 224706
+3810, addUser, 93336
+3658, addUser, 78336
+3425, addUser, 78336
+3088, addUser, 78336
+3437, addUser, 78336
+3492, addUser, 78336
+3239, addUser, 647269
+1, 3088, completeIteration, 240962
+2, 3658, completeIteration, 240962
+3, 3492, completeIteration, 240962
+4, 3437, completeIteration, 240962
+3910, addUser, 93336
+3408, addUser, 78336
+3385, addUser, 78336
+3060, addUser, 78336
+3541, addUser, 78336
+3341, addUser, 78336
+3416, addUser, 643613
+3419, addUser, 93336
+3566, addUser, 78336
+3289, addUser, 78336
+3696, addUser, 78336
+3794, addUser, 78336
+3820, addUser, 78336
+3889, addUser, 650925
+1, 3820, completeIteration, 228906
+2, 3419, completeIteration, 221050
+3, 3820, completeIteration, 224162
+3877, addUser, 93336
+3574, addUser, 78336
+3263, addUser, 78336
+3221, addUser, 78336
+3279, addUser, 78336
+3866, addUser, 78336
+3449, addUser, 647269
+1, 3279, completeIteration, 224162
+2, 3574, completeIteration, 228906
+3314, addUser, 93336
+3588, addUser, 78336
+3840, addUser, 78336
+3744, addUser, 78336
+3999, addUser, 78336
+3114, addUser, 78336
+3660, addUser, 647269
+1, 3999, completeIteration, 236762
+2, 3114, completeIteration, 240962
+3, 3744, completeIteration, 236762
+4, 3660, completeIteration, 240962
+5, 3840, completeIteration, 237306
+6, 3999, completeIteration, 233650
+7, 3840, completeIteration, 240962
+8, 3588, completeIteration, 236762
+9, 3114, completeIteration, 236762
+10, 3999, completeIteration, 229450
+11, 3840, completeIteration, 236762
+12, 3660, completeIteration, 237306
+13, 3840, completeIteration, 240962
+14, 3588, completeIteration, 228906
+15, 3840, completeIteration, 228906
+16, 3114, completeIteration, 236762
+17, 3314, completeIteration, 228906
+18, 3840, completeIteration, 240962
+19, 3660, completeIteration, 229450
+3152, addUser, 93336
+3992, addUser, 78336
+3624, addUser, 78336
+3272, addUser, 78336
+3729, addUser, 78336
+3138, addUser, 78336
+3004, addUser, 78336
+3134, addUser, 78336
+3230, addUser, 78336
+3505, addUser, 78336
+3912, addUser, 78336
+3556, addUser, 78336
+3372, addUser, 78336
+3794, addUser, 78336
+3747, addUser, 93336
+3981, addUser, 78336
+3625, addUser, 78336
+3516, addUser, 78336
+3402, addUser, 78336
+3649, addUser, 78336
+3047, addUser, 78336
+3182, addUser, 78336
+3355, addUser, 78336
+3256, addUser, 78336
+3601, addUser, 78336
+3112, addUser, 78336
+3502, addUser, 93336
+3013, addUser, 78336
+3949, addUser, 78336
+3775, addUser, 78336
+3132, addUser, 78336
+3727, addUser, 78336
+3979, addUser, 78336
+3649, addUser, 78336
+3022, addUser, 78336
+3163, addUser, 78336
+3939, addUser, 78336
+3734, addUser, 78336
+3272, addUser, 93336
+3971, addUser, 78336
+3489, addUser, 78336
+3096, addUser, 78336
+3372, addUser, 78336
+3241, addUser, 78336
+3652, addUser, 78336
+3760, addUser, 78336
+3725, addUser, 78336
+3833, addUser, 78336
+3896, addUser, 78336
+3315, addUser, 78336
+4060, addUser, 93336
+3127, addUser, 78336
+4976, addUser, 78336
+3640, addUser, 78336
+3117, addUser, 78336
+3689, addUser, 78336
+4100, addUser, 78336
+4289, addUser, 78336
+4445, addUser, 78336
+4389, addUser, 78336
+4293, addUser, 78336
+4342, addUser, 78336
+4908, addUser, 93336
+3464, addUser, 78336
+4349, addUser, 78336
+3709, addUser, 78336
+4753, addUser, 78336
+3290, addUser, 78336
+3631, addUser, 78336
+4608, addUser, 78336
+3355, addUser, 78336
+3512, addUser, 78336
+3267, addUser, 78336
+3335, addUser, 78336
+4491, addUser, 93336
+4400, addUser, 78336
+3841, addUser, 78336
+3432, addUser, 78336
+3667, addUser, 78336
+3856, addUser, 78336
+3493, addUser, 78336
+3412, addUser, 78336
+4614, addUser, 78336
+3936, addUser, 78336
+3524, addUser, 78336
+3045, addUser, 93336
+3089, addUser, 78336
+3888, addUser, 78336
+4427, addUser, 78336
+4264, addUser, 78336
+3201, addUser, 78336
+3043, addUser, 78336
+4473, addUser, 78336
+3813, addUser, 806046
+1, 3201, completeIteration, 300214
+2, 3043, completeIteration, 296014
+3, 3089, completeIteration, 303870
+4, 4427, completeIteration, 303870
+5, 3201, completeIteration, 283958
+6, 3813, completeIteration, 300214
+7, 4427, completeIteration, 300214
+8, 4264, completeIteration, 291814
+4739, addUser, 93336
+3657, addUser, 78336
+3878, addUser, 78336
+3127, addUser, 78336
+4207, addUser, 78336
+3320, addUser, 573366
+1, 3320, completeIteration, 201653
+2, 3878, completeIteration, 193253
+3, 4207, completeIteration, 205853
+4, 3657, completeIteration, 209509
+5, 3878, completeIteration, 209509
+6, 3320, completeIteration, 193797

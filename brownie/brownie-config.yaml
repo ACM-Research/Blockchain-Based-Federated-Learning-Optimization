@@ -1,0 +1,37 @@
+# Brownie configuration file
+# https://eth-brownie.readthedocs.io/en/stable/config.html
+network:
+    default: development # the default network that brownie connects to
+    settings:
+        gas_limit: 672197500000000000000000000000000000000
+        gas_price: "auto"
+        persist: true
+        reverting_tx_gas_limit: false  # if false, reverting tx's will raise without broadcasting
+    networks:
+        # any settings given here will replace the defaults
+        development:
+            host: http://127.0.0.1
+            gas_price: 0
+            persist: false
+            reverting_tx_gas_limit: 672197500000000000000
+            test_rpc:
+                cmd: ganache-cli
+                port: 8545
+                gas_limit: 672197500000000000000
+                accounts: 10
+                evm_version: istanbul
+                mnemonic: brownie
+        
+pytest:
+    # these settings replace the defaults when running pytest
+    gas_limit: 672197500000000
+    default_contract_owner: true
+    reverting_tx_gas_limit: 672197500000000
+    revert_traceback: true
+compiler:
+    evm_version: null
+    minify_source: false
+    solc:
+        version: null
+        optimize: true
+        runs: 200
