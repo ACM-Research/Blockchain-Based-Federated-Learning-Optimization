@@ -1,5 +1,19 @@
 # Blockchain-Based-Federated-Learning-Optimization
 
+Team Members: Dhruv Bansal, Bryant Hargreaves, Viswa Kotra, Timothy Naumov, Akshat Sharma <br>
+Research Lead: Rohan Dave <br>
+Advisor: Dr. Murat Kantarcioglu
+
+## Introduction
+
+Federated Learning, a decentralized machine learning approach, has advanced significantly. However, integrating it with blockchain faces challenges, particularly with high gas fees and slow epochs. Our research addresses this by combining blockchain with federated learning and optimizing this conjunction using various tree structures and off-chain computing. We aim to reduce gas costs by deploying smart contracts on Ethereum for decentralization, while mitigating computation burdens off-chain. This strategy not only cuts gas expenses but also taps into blockchain's security, enabling efficient and cost-effective implementations.
+
+## Federated Learning Visualization
+[![Youtube_Video](https://img.youtube.com/vi/JNdhq95s6yI/0.jpg)](https://youtu.be/JNdhq95s6yI)
+
+## Research Poster
+![Research  Poster](poster.png)
+
 ## How to test run the program
 1. download python 3.9.16
 ```python -p 3.9.16 venv .venv```
@@ -15,10 +29,3 @@
 ```python start_task.py```
 6. run multiple tree/client.py scripts to create new clients for federated learning
 ```python tree/client.py```
-
-![Research  Poster](poster.png)
- 
-## Things that still need to be done:
-1. Restructure tree (not too hard) just need to create a restructure msg handler from old root
-2. The fed average is not actually evenly averaged (D:) Fix: divide the node's params by the total num of nodes THEN add them together. idk why i didn't  do it that way to begin with :/
-3. Figure out the best way to send the WHOLE model params to tree or just leave it as a local .pth file in the tree folder. Maybe we can upload it to some cloud thing somewhere like an aws or google bucket and store the url bc i don't know if solidity can handle big calls/transactions very well
