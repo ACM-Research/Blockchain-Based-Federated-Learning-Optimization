@@ -1,6 +1,14 @@
 # Blockchain-Based-Federated-Learning-Optimization
 
-## Demo Video
+Team Members: Dhruv Bansal, Bryant Hargreaves, Viswa Kotra, Timothy Naumov, Akshat Sharma <br>
+Research Lead: Rohan Dave <br>
+Advisor: Dr. Murat Kantarcioglu
+
+## Introduction
+
+Federated Learning, a decentralized machine learning approach, has advanced significantly. However, integrating it with blockchain faces challenges, particularly with high gas fees and slow epochs. Our research addresses this by combining blockchain with federated learning and optimizing this conjunction using various tree structures and off-chain computing. We aim to reduce gas costs by deploying smart contracts on Ethereum for decentralization, while mitigating computation burdens off-chain. This strategy not only cuts gas expenses but also taps into blockchain's security, enabling efficient and cost-effective implementations.
+
+## Federated Learning Visualization
 [![Youtube_Video](https://img.youtube.com/vi/JNdhq95s6yI/0.jpg)](https://youtu.be/JNdhq95s6yI)
 
 ## Research Poster
