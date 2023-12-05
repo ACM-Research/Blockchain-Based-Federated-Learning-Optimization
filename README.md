@@ -1,6 +1,6 @@
 # Blockchain-Based-Federated-Learning-Optimization
 
-## Demo
+## Demo Video
 [![Youtube_Video](https://img.youtube.com/vi/JNdhq95s6yI/0.jpg)](https://youtu.be/JNdhq95s6yI)
 
 ## Research Poster
