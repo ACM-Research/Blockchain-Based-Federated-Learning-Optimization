@@ -1,5 +1,11 @@
 # Blockchain-Based-Federated-Learning-Optimization
 
+## Demo Video
+![Youtube]([poster.png](https://youtu.be/JNdhq95s6yI))
+
+## Research Poster
+![Research  Poster](poster.png)
+
 ## How to test run the program
 1. download python 3.9.16
 ```python -p 3.9.16 venv .venv```
@@ -15,5 +21,3 @@
 ```python start_task.py```
 6. run multiple tree/client.py scripts to create new clients for federated learning
 ```python tree/client.py```
-
-![Research  Poster](poster.png)
