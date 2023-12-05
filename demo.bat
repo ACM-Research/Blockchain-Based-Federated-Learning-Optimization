@@ -1,3 +1,5 @@
+call .venv\Scripts\activate
+
 set "childCount=6"
 set "iterations=20"
 
